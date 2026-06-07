@@ -2,7 +2,7 @@
 
 A macOS app launcher. Press a global hotkey, type, hit return.
 
-![Borma search panel](Images/panel.png)
+![Borma search panel](Images/searching.avif)
 
 ## What it does
 
