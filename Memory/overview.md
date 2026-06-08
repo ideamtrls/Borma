@@ -7,8 +7,8 @@ globs:
   - Sources/App/Logging.swift
   - Sources/Config/Config.swift
   - Sources/Config/ConfigStore.swift
-keywords: [overview, system map, source layout, component graph, data flow, persistence, scenes, MenuBarExtra, Settings, startup, where is X defined, what runs at startup, where does config or frecency live on disk, dismiss flow]
-updated: 2026-06-06
+keywords: [overview, system map, source layout, component graph, data flow, persistence, atomic write, Codable version field, migration, scenes, MenuBarExtra, Settings, startup, where is X defined, what runs at startup, where does config or frecency live on disk, dismiss flow]
+updated: 2026-06-07
 ---
 
 # Overview
@@ -81,3 +81,5 @@ UserDefaults key:
 - `borma.welcome.dismissed` — Bool. Set true on the first panel `hide()`.
 
 Both JSON files are written atomically (`Data.write(to:options: .atomic)`). No in-memory cache is persisted; rescans run from scratch.
+
+When adding a new persisted store, follow the same contract: `Codable` with an explicit `version` field, atomic writes only, and a migration when you bump `version` (model it on `FrecencyStore`'s v1→v2 in `search.md`). Atomic writes also dictate how the file is watched — see `concurrency.md` ("Watch the directory, not the file").

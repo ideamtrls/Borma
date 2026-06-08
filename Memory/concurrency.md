@@ -4,8 +4,8 @@ globs:
   - Sources/Config/FileWatcher.swift
   - Sources/Panel/LayoutMetrics.swift
   - Sources/Search/Apps.swift
-keywords: [MainActor, default-isolation, Sendable, unchecked Sendable, nonisolated, AsyncStream, FSEvents, ContinuationBox, Task.detached, MainActor.run, Shape, observation, DirectoryEnumerator, Sendable warning or error, data race, FSEvents callback after dealloc, EXC_BREAKPOINT in _FSEventStreamDeallocate, dispatch_assert_queue trap on utility-qos, Shape cannot read main-actor constant, DirectoryEnumerator makeIterator unavailable from async]
-updated: 2026-06-06
+keywords: [MainActor, default-isolation, Sendable, unchecked Sendable, nonisolated, AsyncStream, FSEvents, ContinuationBox, watch directory not file, atomic write inode replacement, Task.detached, MainActor.run, Shape, observation, DirectoryEnumerator, Sendable warning or error, data race, FSEvents callback after dealloc, EXC_BREAKPOINT in _FSEventStreamDeallocate, dispatch_assert_queue trap on utility-qos, Shape cannot read main-actor constant, DirectoryEnumerator makeIterator unavailable from async]
+updated: 2026-06-07
 ---
 
 # Concurrency
@@ -40,13 +40,15 @@ nonisolated func makeRecord(bundleURL: URL) async -> AppRecord {
 }
 ```
 
-`MainActor.run` requires the closure's return type to be `Sendable`. `AppRecord` is `@unchecked Sendable` for this reason: the `NSImage` is mutated only inside the main-actor block, then the record is immutable, then it crosses back to the background actor for collection.
+`MainActor.run` requires the closure's return type to be `Sendable`. `AppRecord` is `@unchecked Sendable` for this reason: the `NSImage` is mutated only inside the main-actor block, then the record is immutable, then it crosses back to the background actor for collection. That "assembled on main, then immutable" contract is the *only* basis on which `@unchecked Sendable` is acceptable in this codebase — when the immutability isn't obvious from the surrounding code, justify the `@unchecked` with a comment.
 
 See `Sources/Search/Apps.swift` for the canonical example.
 
 ## FSEvents wrapper: the ContinuationBox pattern
 
 `FileWatcher` (in `Sources/Config/FileWatcher.swift`) wraps `FSEventStream` so changes to disk yield `Void` events over an `AsyncStream`. FSEvents' callback runs on a global dispatch queue and references its `info` pointer via Swift's `Unmanaged`.
+
+**Watch the directory, not the file.** Always point `FileWatcher` at a *directory*, never an individual file. Config and frecency are saved with atomic writes (`Data.write(to:options: .atomic)`), which replace the file's inode on every save; a file-level watch would keep holding the old inode and miss every subsequent write. Watching the enclosing directory catches the rename-into-place. At startup `AppDelegate` attaches one watcher to the config file's directory and one to the configured app directories (see `overview.md`).
 
 **The hazard.** The naive pattern — `Unmanaged.passUnretained(self)` with `nil` retain/release on `FSEventStreamContext` — leaves a raw pointer to the watcher in FSEvents' hands. If the watcher is deallocated (e.g. replaced when the config changes) while a callback is still draining on the global queue, the callback dereferences a dangling pointer.
 

@@ -1,9 +1,10 @@
 ---
-scope: xcodegen project generation, signing, SPM dependencies, dev loop
+scope: xcodegen project generation, signing, entitlements, SPM dependencies, dev loop
 globs:
   - project.yml
-keywords: [build, xcodegen, signing, SPM, dependency, project.yml, xcodebuild, code signing, project file regenerated, Xcode dev team not set, package dependency change, CI build fails on signing]
-updated: 2026-06-06
+  - Borma.entitlements
+keywords: [build, xcodegen, signing, entitlements, app sandbox, hardened runtime, SPM, dependency, project.yml, xcodebuild, code signing, project file regenerated, Xcode dev team not set, package dependency change, CI build fails on signing]
+updated: 2026-06-07
 ---
 
 # Build & run
@@ -21,6 +22,10 @@ open Borma.xcodeproj      # then set your dev team in Signing & Capabilities
 In Xcode: **Borma target → Signing & Capabilities → Team**, pick your own team. `CODE_SIGN_STYLE = Automatic` is already configured, so Xcode handles the certificate and provisioning profile.
 
 ⌘R to build and run.
+
+## Signing & entitlements
+
+`project.yml` wires three signing-related settings: `CODE_SIGN_STYLE = Automatic`, `ENABLE_HARDENED_RUNTIME = YES`, and `CODE_SIGN_ENTITLEMENTS = Borma.entitlements`. The entitlements file is tiny — it enables `com.apple.security.app-sandbox` only. Add new capabilities (e.g. a security-scoped bookmark or network access) by editing `Borma.entitlements` directly; it's referenced by path from `project.yml`, so no `xcodegen generate` is needed for entitlement-only changes (regenerate only if you change the `CODE_SIGN_ENTITLEMENTS` wiring itself).
 
 ## Regenerating after project changes
 

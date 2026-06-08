@@ -54,6 +54,7 @@ When you're editing a specific source file, look here for which docs cover it.
 | `Sources/Search/LauncherModel.swift` | `search.md` (orchestrator) | `panel.md` (observation surface) |
 | `Sources/Hotkey/Hotkey.swift` | `hotkey.md` (controller, Spotlight detection) | `glossary.md` (two-name pattern, active vs. saved) |
 | `project.yml` | `build.md` (xcodegen) | — |
+| `Borma.entitlements` | `build.md` (app sandbox, signing) | — |
 
 ## Task index (full)
 
