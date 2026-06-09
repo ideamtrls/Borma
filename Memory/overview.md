@@ -70,9 +70,12 @@ AppInfo               — Bundle identity (`bundleID`), read from the bundle at 
 ```
 ~/Library/Application Support/com.ideamtrls.borma/
   config.json     — user-editable. searchPaths, highlightColor, alwaysShowHint.
-                    Codable; version field for forward compat.
+                    Codable; version field for forward compat. If it fails to
+                    decode (bad hand edit), it's moved aside to
+                    config.json.errors and a fresh default is written.
   frecency.json   — machine-written. entries[bundleId][query] = {launchCount, lastLaunchedAt}.
-                    Versioned (currently v2); v1→v2 migration on load.
+                    Versioned (currently v2); v1→v2 migration on load. Entries
+                    untouched for 12 half-lives (~5.5 months) are pruned at load.
 ```
 
 The `com.ideamtrls.borma` directory name isn't hardcoded — it comes from `AppInfo.bundleID` (read from the bundle at runtime), so it tracks `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml` automatically.

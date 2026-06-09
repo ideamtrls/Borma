@@ -26,8 +26,31 @@ final class ConfigStore {
         do {
             let data = try Data(contentsOf: fileURL)
             config = try JSONDecoder().decode(Config.self, from: data)
+        } catch let error as DecodingError {
+            // The file is user-editable, so a decode failure usually means a
+            // bad hand edit. Falling back to defaults in memory would let the
+            // next save() silently overwrite those edits — move the file
+            // aside first so they can be recovered.
+            Log.config.error("Failed to decode config at \(self.fileURL.path, privacy: .public): \(String(describing: error), privacy: .public)")
+            preserveBrokenFile()
+            config = .default
+            save()
         } catch {
-            Log.config.error("Failed to load config at \(self.fileURL.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            Log.config.error("Failed to read config at \(self.fileURL.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Renames the unreadable config to `config.json.errors` (replacing any
+    /// previous one) so a fresh default can be written in its place.
+    private func preserveBrokenFile() {
+        let backupURL = fileURL.appendingPathExtension("errors")
+        let fm = FileManager.default
+        do {
+            try? fm.removeItem(at: backupURL)
+            try fm.moveItem(at: fileURL, to: backupURL)
+            Log.config.notice("Moved broken config to \(backupURL.path, privacy: .public)")
+        } catch {
+            Log.config.error("Failed to move broken config aside: \(error.localizedDescription, privacy: .public)")
         }
     }
 
