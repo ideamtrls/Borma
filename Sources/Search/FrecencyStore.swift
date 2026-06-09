@@ -30,6 +30,12 @@ final class FrecencyStore {
     /// long historical queries from over-dominating short typed prefixes.
     private static let prefixMatchDamping: Double = 0.7
 
+    /// Entries untouched for this long are dropped at load. At 12 half-lives
+    /// the recency factor is 0.5^12 ≈ 0.0002, so the multiplier contribution
+    /// is negligible — keeping them only grows the file and the per-keystroke
+    /// lookup without bound.
+    private static let pruneAge: TimeInterval = 12 * halfLife
+
     init(fileURL: URL) {
         self.fileURL = fileURL
     }
@@ -44,15 +50,35 @@ final class FrecencyStore {
         if let current = try? decoder.decode(FrecencyData.self, from: raw),
            current.version == FrecencyData.currentVersion {
             data = current
-            return
-        }
-        if let v1 = try? decoder.decode(FrecencyDataV1.self, from: raw), v1.version == 1 {
+        } else if let v1 = try? decoder.decode(FrecencyDataV1.self, from: raw), v1.version == 1 {
             Log.frecency.notice("Migrating frecency v1 → v\(FrecencyData.currentVersion)")
             data = v1.migrated()
             save()
+        } else {
+            Log.frecency.error("Unable to decode frecency, starting fresh")
             return
         }
-        Log.frecency.error("Unable to decode frecency, starting fresh")
+        if prune() { save() }
+    }
+
+    /// Drops entries older than `pruneAge`. Returns whether anything was removed.
+    private func prune() -> Bool {
+        let cutoff = Date().timeIntervalSince1970 - Self.pruneAge
+        var removedCount = 0
+        for (bundleId, byQuery) in data.entries {
+            let kept = byQuery.filter { $0.value.lastLaunchedAt >= cutoff }
+            guard kept.count != byQuery.count else { continue }
+            removedCount += byQuery.count - kept.count
+            if kept.isEmpty {
+                data.entries.removeValue(forKey: bundleId)
+            } else {
+                data.entries[bundleId] = kept
+            }
+        }
+        if removedCount > 0 {
+            Log.frecency.notice("Pruned \(removedCount) stale frecency entries")
+        }
+        return removedCount > 0
     }
 
     private func save() {

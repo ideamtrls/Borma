@@ -60,6 +60,8 @@ Per-(bundleId, query) launch history with frequency × recency weighting.
 
 **Migration.** Loading recognizes the v1 flat shape (`entries["<query>\u{1}<bundleId>"]`) and migrates to v2 in memory + persists. See `FrecencyDataV1.migrated()`.
 
+**Pruning.** After a successful load (or migration), entries whose `lastLaunchedAt` is older than `pruneAge` (12 half-lives ≈ 5.5 months) are dropped and the file is re-saved if anything was removed. At that age the recency factor is ~0.0002, so the multiplier contribution is negligible — pruning keeps the file and the per-keystroke lookup from growing without bound.
+
 **Score formula:**
 
 ```
