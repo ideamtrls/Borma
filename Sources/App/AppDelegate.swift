@@ -77,7 +77,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { [weak self] in
             for await _ in events {
                 guard let self else { return }
+                // The watcher covers the whole App Support directory, so
+                // frecency saves and ConfigStore's own writes land here too.
+                // Only rescan and re-attach the app watcher when the config
+                // actually changed.
+                let previous = self.config.config
                 self.config.load()
+                guard self.config.config != previous else { continue }
                 await self.rescan()
                 self.startAppWatcher()
             }

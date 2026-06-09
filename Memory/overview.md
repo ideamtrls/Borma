@@ -8,7 +8,7 @@ globs:
   - Sources/Config/Config.swift
   - Sources/Config/ConfigStore.swift
 keywords: [overview, system map, source layout, component graph, data flow, persistence, atomic write, Codable version field, migration, scenes, MenuBarExtra, Settings, startup, where is X defined, what runs at startup, where does config or frecency live on disk, dismiss flow]
-updated: 2026-06-07
+updated: 2026-06-09
 ---
 
 # Overview
@@ -63,7 +63,7 @@ AppInfo               — Bundle identity (`bundleID`), read from the bundle at 
 
 **Dismiss (Esc, Return-after-launch, or hotkey re-pressed).** `PanelController.hide()` calls `model.reset()`. The first `hide()` while `WelcomeFlag.isActive` retires the flag, persists it, and clears `model.welcomeActive`. Click-away does not dismiss — see `panel.md`.
 
-**Config or app dir changes.** The corresponding `FileWatcher` yields a `Void` on its `events` `AsyncStream`. The watcher consumer reloads the config and rescans paths; `model.apps` is replaced with the new list.
+**Config or app dir changes.** The corresponding `FileWatcher` yields a `Void` on its `events` `AsyncStream`. The config watcher covers the whole App Support directory (atomic writes force watching the directory — see `concurrency.md`), so frecency saves and `ConfigStore`'s own writes fire it too; the consumer reloads the config and only rescans + re-attaches the app watcher when the reloaded `Config` differs (`Config` is `Equatable`). App-dir events always trigger a rescan; `model.apps` is replaced with the new list.
 
 ## Persistence
 

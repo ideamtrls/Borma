@@ -6,7 +6,7 @@ globs:
   - Sources/Search/FrecencyStore.swift
   - Sources/Search/LauncherModel.swift
 keywords: [fuzzy matching, frecency, AppScanner, AppLauncher, Matcher, scoring, LauncherModel, ranking, subsequence, half-life, prefix match, two-pass walk, Safari symlink, app missing from results, Safari not appearing in list, frecency not boosting after launch, ranking feels wrong, frecency schema migration on load]
-updated: 2026-06-06
+updated: 2026-06-09
 ---
 
 # Search subsystem
@@ -36,7 +36,7 @@ Single function: `AppLauncher.launch(_ app: AppRecord)`. Calls `NSWorkspace.shar
 
 ## Matcher
 
-Case-insensitive subsequence scoring. `Matcher.score(query:target:)` returns `Int?`; `nil` means the subsequence isn't present.
+Case- and diacritic-insensitive subsequence scoring — both strings are normalized via `folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)`, so "cafe" matches "Café". `Matcher.score(query:target:)` returns `Int?`; `nil` means the subsequence isn't present.
 
 Constants (`Sources/Search/Matcher.swift`):
 
@@ -82,11 +82,11 @@ The damping prevents long historical queries from dominating short typed prefixe
 `@Observable`. Source of truth for the active search session:
 
 - `apps: [AppRecord]` — current scan result
-- `query: String` — text the user is typing
+- `query: String` — text the user is typing; any edit resets `selection` to 0 (the results list changes underneath, so a stale index would point at the wrong app)
 - `selection: Int` — index into `results` (clamped 0…count-1)
 - `welcomeActive`, `conflictActive`, `activeHotkey` — UX flags pushed by `AppDelegate` from `HotkeyController` and `WelcomeFlag`
 - `onLaunch`, `onDismissRequested` — callbacks (`@ObservationIgnored`)
 
-`results` is a computed property — the ranking happens on every read. Sort key: `score desc, displayName.count asc, displayName alpha asc`. Capped at `maxResults = 8`.
+`results` is a computed property — the ranking happens on every read. Each app is scored against both its `displayName` and its on-disk `fileName` (the `.app` name without extension, skipped when identical), keeping the better match — this is what lets "vscode" find "Visual Studio Code" whose display name is just "Code". The candidate's final score is `max(matchScore, 1) × frecencyMultiplier` — the floor matters because gap penalties can drive the match score negative, and multiplying a negative base by a frecency boost would rank an app worse the more it's launched. Sort key: `score desc, displayName.count asc, displayName alpha asc`. Capped at `maxResults = 8`.
 
 `launchSelection()` invokes `onLaunch` (with the selected record and current query), then `onDismissRequested`. `AppDelegate` wires these in `applicationDidFinishLaunching` so a launch records frecency, opens the app, and hides the panel in one shot.

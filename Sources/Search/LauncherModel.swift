@@ -9,7 +9,11 @@ import Observation
 @Observable
 final class LauncherModel {
     var apps: [AppRecord] = []
-    var query: String = ""
+    var query: String = "" {
+        // Editing the query replaces the results underneath the selection;
+        // keeping the old index would highlight (and launch) the wrong app.
+        didSet { if query != oldValue { selection = 0 } }
+    }
     var selection: Int = 0
 
     var welcomeActive: Bool = true
@@ -33,9 +37,19 @@ final class LauncherModel {
         var scored: [(AppRecord, Double)] = []
         scored.reserveCapacity(apps.count)
         for app in apps {
-            guard let s = Matcher.score(query: query, target: app.displayName) else { continue }
+            // Score the display name and the on-disk bundle name, keep the
+            // best: "vscode" matches the file name "Visual Studio Code" even
+            // though the display name is just "Code".
+            let candidates = app.fileName == app.displayName
+                ? [Matcher.score(query: query, target: app.displayName)]
+                : [Matcher.score(query: query, target: app.displayName),
+                   Matcher.score(query: query, target: app.fileName)]
+            guard let s = candidates.compactMap({ $0 }).max() else { continue }
             let mult = frecency.multiplier(query: query, bundleId: app.bundleId)
-            scored.append((app, Double(s) * mult))
+            // Gap penalties can drive the match score negative; multiplying a
+            // negative base by a frecency boost (> 1) would rank the app
+            // *worse* the more it's launched. Floor at 1 so frecency only helps.
+            scored.append((app, max(Double(s), 1) * mult))
         }
         scored.sort { a, b in
             if a.1 != b.1 { return a.1 > b.1 }

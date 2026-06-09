@@ -9,6 +9,10 @@ import AppKit
 struct AppRecord: Identifiable, @unchecked Sendable {
     let bundleURL: URL
     let displayName: String
+    /// The `.app` bundle's file name without extension. Often differs from
+    /// `displayName` (e.g. "Visual Studio Code" vs. "Code") and is scored as
+    /// an alternate match target.
+    let fileName: String
     let bundleId: String
     let icon: NSImage
 
@@ -106,6 +110,7 @@ enum AppScanner {
             return AppRecord(
                 bundleURL: bundleURL,
                 displayName: displayName,
+                fileName: bundleURL.deletingPathExtension().lastPathComponent,
                 bundleId: bundleId,
                 icon: icon
             )

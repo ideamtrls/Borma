@@ -11,8 +11,8 @@ enum Matcher {
 
     static func score(query: String, target: String) -> Int? {
         if query.isEmpty { return 0 }
-        let q = Array(query.lowercased())
-        let t = Array(target.lowercased())
+        let q = fold(query)
+        let t = fold(target)
 
         if q == t { return exactMatchBonus }
 
@@ -41,5 +41,10 @@ enum Matcher {
         }
 
         return qi == q.count ? score : nil
+    }
+
+    /// Case- and diacritic-insensitive normalization, so "cafe" matches "Café".
+    private static func fold(_ s: String) -> [Character] {
+        Array(s.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))
     }
 }
