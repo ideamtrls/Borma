@@ -2,7 +2,7 @@
 scope: Deep index — source→doc reverse map, doc sizes, full task index
 globs: []
 keywords: [index, navigation, quickstart, reverse map, source to doc, doc sizes, task index, can't find the right doc, which doc covers this file]
-updated: 2026-06-06
+updated: 2026-06-10
 ---
 
 # Memory index
@@ -13,7 +13,7 @@ If you're loading docs into context: read `CLAUDE.md` first (always loaded anywa
 
 ## Quickstart for a fresh agent
 
-1. **Read `overview.md`** for the system map (~93 lines).
+1. **Read `overview.md`** for the system map.
 2. **Skim `glossary.md`** for Borma-specific vocabulary (frecency, bib, conflict banner, two-name pattern, ContinuationBox, etc.).
 3. **Read the topic-specific doc** for what you're touching — see "By topic" below or in `CLAUDE.md`.
 4. **Apply Conventions** from `CLAUDE.md` before writing code.
@@ -21,15 +21,17 @@ If you're loading docs into context: read `CLAUDE.md` first (always loaded anywa
 
 ## By topic
 
-| Topic | File | Size |
-| --- | --- | --- |
-| System map, source layout, component graph, data flow, persistence | `overview.md` | 93 lines |
-| xcodegen, project regeneration, dev loop | `build.md` | 61 lines |
-| Swift 6 isolation, AppKit hopping, FSEvents `ContinuationBox` pattern | `concurrency.md` | 92 lines |
-| App discovery, fuzzy matching, frecency | `search.md` | 103 lines |
-| NSPanel configuration, window behavior, welcome flag | `panel.md` | 113 lines |
-| Global hotkey, Spotlight conflict fallback | `hotkey.md` | 98 lines |
-| Borma-specific terminology | `glossary.md` | (vocabulary) |
+Every memory file is small enough to read in full — pick the topic, open that file, and don't bother budgeting by length.
+
+| Topic | File |
+| --- | --- |
+| System map, source layout, component graph, data flow, persistence | `overview.md` |
+| xcodegen, project regeneration, dev loop, asset catalog | `build.md` |
+| Swift 6 isolation, AppKit hopping, FSEvents `ContinuationBox` pattern | `concurrency.md` |
+| App discovery, fuzzy matching, frecency | `search.md` |
+| NSPanel configuration, window behavior, welcome flag | `panel.md` |
+| Global hotkey, Spotlight conflict fallback | `hotkey.md` |
+| Borma-specific terminology | `glossary.md` |
 
 ## By source file (reverse map)
 
@@ -87,4 +89,4 @@ See `glossary.md`.
 
 ## Keeping docs current
 
-Run `/memorymtrls:update` at the end of a working session. It diffs the session against the memory files' `globs:` and updates the docs whose covered source changed — no separate freshness script to run.
+Memory files are updated inline, as part of any change that alters how an area works (see the maintenance instruction in `CLAUDE.md`): edit the file whose `globs:` cover the changed source and bump its `updated`. Run `/memorymtrls:improve` periodically to audit the whole set — it enforces the format spec, rewrites stale claims against the current source, and regenerates the router.

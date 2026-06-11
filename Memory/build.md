@@ -3,8 +3,9 @@ scope: xcodegen project generation, signing, entitlements, SPM dependencies, dev
 globs:
   - project.yml
   - Borma.entitlements
-keywords: [build, xcodegen, signing, entitlements, app sandbox, hardened runtime, SPM, dependency, project.yml, xcodebuild, code signing, project file regenerated, Xcode dev team not set, package dependency change, CI build fails on signing]
-updated: 2026-06-07
+  - Sources/Resources/**
+keywords: [build, xcodegen, signing, entitlements, app sandbox, hardened runtime, SPM, dependency, project.yml, xcodebuild, code signing, project file regenerated, Xcode dev team not set, package dependency change, CI build fails on signing, asset catalog, AppIcon, menu bar icon, app icon blank or missing]
+updated: 2026-06-10
 ---
 
 # Build & run
@@ -26,6 +27,15 @@ In Xcode: **Borma target → Signing & Capabilities → Team**, pick your own te
 ## Signing & entitlements
 
 `project.yml` wires three signing-related settings: `CODE_SIGN_STYLE = Automatic`, `ENABLE_HARDENED_RUNTIME = YES`, and `CODE_SIGN_ENTITLEMENTS = Borma.entitlements`. The entitlements file is tiny — it enables `com.apple.security.app-sandbox` only. Add new capabilities (e.g. a security-scoped bookmark or network access) by editing `Borma.entitlements` directly; it's referenced by path from `project.yml`, so no `xcodegen generate` is needed for entitlement-only changes (regenerate only if you change the `CODE_SIGN_ENTITLEMENTS` wiring itself).
+
+## Resources / asset catalog
+
+`Sources/Resources/Assets.xcassets` holds the two image assets:
+
+- **`AppIcon`** — the app icon set. Wired by `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon` in `project.yml`; if you rename the set, change that setting in the same edit or the icon silently falls back to blank.
+- **`MenuBarIcon`** — the status-item image, a template-rendered image set referenced by name in `MenuBarExtra("Borma", image: "MenuBarIcon")` (`Sources/App/BormaApp.swift`).
+
+The catalog sits under the `Sources` path, so `xcodegen` picks it up automatically — adding or swapping an image inside an existing set needs no `xcodegen generate`. Regenerate only when you wire a *new* top-level setting (e.g. a second app icon via a new `ASSETCATALOG_*` key).
 
 ## Regenerating after project changes
 

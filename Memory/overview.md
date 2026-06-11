@@ -8,14 +8,14 @@ globs:
   - Sources/Config/Config.swift
   - Sources/Config/ConfigStore.swift
 keywords: [overview, system map, source layout, component graph, data flow, persistence, atomic write, Codable version field, migration, scenes, MenuBarExtra, Settings, startup, where is X defined, what runs at startup, where does config or frecency live on disk, dismiss flow]
-updated: 2026-06-09
+updated: 2026-06-10
 ---
 
 # Overview
 
 Borma is a macOS app launcher. A global hotkey summons a floating search panel; the user types, fuzzy-matched applications appear ranked by match quality and personal frecency; Enter launches the selected app; Esc dismisses.
 
-The repo aims for a small surface area: ~1,300 lines of Swift, one external dependency (`KeyboardShortcuts`), generated via `xcodegen` from a single `project.yml`.
+The repo aims for a small surface area: ~1,400 lines of Swift, one external dependency (`KeyboardShortcuts`), generated via `xcodegen` from a single `project.yml`.
 
 ## Source layout
 

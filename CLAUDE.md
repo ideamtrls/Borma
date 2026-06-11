@@ -5,7 +5,7 @@ macOS app launcher with a global-hotkey-summoned floating search panel.
 Rules that apply to *every* task (area-specific conventions live in the memory files, loaded on demand):
 
 - **Logging:** Use `Log.<category>` from `Sources/App/Logging.swift`; never `print()`. Add `privacy: .public` to interpolated values you intend to surface in Console.
-- **Doc updates:** When you change behavior, update the matching `Memory/` file as part of the same change. Run `/memorymtrls:update` at the end of a session to refresh docs whose covered source changed.
+- **Doc updates:** When you change behavior, update the matching `Memory/` file as part of the same change. Run `/memorymtrls:improve` periodically to audit the whole memory set.
 
 <!-- memorymtrls:start -->
 
@@ -20,6 +20,8 @@ Rules that apply to *every* task (area-specific conventions live in the memory f
 This project's working context lives in `Memory/`, with one file per category of context. The table below maps task level concerns to the context file(s) that cover it.
 
 **IMPORTANT: Before starting a task, scan this table. If any rows match the task, read the relevant memory files, and then start the task.** Read only the rows that match. Context window efficiency is gained by not reading irrelevant context; if nothing matches, proceed without reading any.
+
+**IMPORTANT: Before finishing a task that changed how an area works, update that area's memory file.** Keep edits surgical and bump `updated`. Memory files describe the current state of the system — what *is*, never what *was*. Do not narrate the change ("previously", "no longer", "moved from…"); rewrite the affected text as if the current state had always been true. If the work created a new area with no matching file, tell the user rather than inventing a category.
 
 | Memory file | Read this when… |
 | ----------- | --------------- |
