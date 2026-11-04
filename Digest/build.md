@@ -41,7 +41,7 @@ All in `project.yml`, under the `Borma` target unless noted:
 - **Deployment target:** macOS 26.0, set in both `options.deploymentTarget.macOS` (project level) and `MACOSX_DEPLOYMENT_TARGET` (target level). Keep them in step.
 - **Info.plist:** generated (`GENERATE_INFOPLIST_FILE: YES`). The repo has no `Info.plist`, so a new key goes in as an `INFOPLIST_KEY_*` setting. `INFOPLIST_KEY_LSUIElement: YES` is what removes the Dock icon.
 - **Bundle id:** `PRODUCT_BUNDLE_IDENTIFIER`. `AppInfo.bundleID` reads it from the bundle for the log subsystem and the Application Support directory name, with a `com.ideamtrls.borma` literal as a fallback for non-bundled contexts. Change the literal along with the setting.
-- **Version:** `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION`. Bump them here, then regenerate.
+- **Version:** `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION`. Bump them here, then regenerate. `CURRENT_PROJECT_VERSION` only ever goes up, including across a `MARKETING_VERSION` bump.
 
 Built app bundles stay out of git: `/Borma/` is gitignored and builds are distributed through GitHub Releases. The repo has no release script.
 
