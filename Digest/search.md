@@ -14,7 +14,7 @@ App discovery, fuzzy matching, frecency, and the `LauncherModel` ranking that tu
 - `AppRecord`, `AppLauncher.launch(_:)`, `AppScanner.scan(paths:)` (private `scanAsync`, `makeRecord`): `Sources/Search/Apps.swift`
 - `Matcher.score(query:target:)`, the scoring constants, `fold`: `Sources/Search/Matcher.swift`
 - `FrecencyStore` (`load`, `record`, `multiplier`, `prune`), `FrecencyData`, `FrecencyEntry`, `FrecencyDataV1`: `Sources/Search/FrecencyStore.swift`
-- `LauncherModel` (`results`, `launchSelection`, `selectNext`, `selectPrev`, `reset`, `maxResults`): `Sources/Search/LauncherModel.swift`
+- `LauncherModel` (`results`, `selectedApp(in:)`, `launchSelection`, `selectNext`, `selectPrev`, `reset`, `maxResults`): `Sources/Search/LauncherModel.swift`
 - Wiring: `AppDelegate` (`frecency`, `model`, `rescan`, `startAppWatcher`, `startConfigWatcher`, `appSupportDir`): `Sources/App/AppDelegate.swift`
 - Default search roots: `Config.default`, `Sources/Config/Config.swift`
 - Readers of `results`: `SearchView`, `Sources/Panel/SearchView.swift`; `PanelController`, `Sources/Panel/Panel.swift`
@@ -100,8 +100,8 @@ Matching is one-way. Stored "saf" can boost typed "s" and "sa", but typed "safa"
 `@Observable`. Source of truth for the active search session:
 
 - `apps: [AppRecord]` — current scan result
-- `query: String` — text the user is typing; any edit resets `selection` to 0 (the results list changes underneath, so a stale index would point at the wrong app)
-- `selection: Int` — index into `results`. `selectNext` and `selectPrev` clamp to 0…count-1 with no wrap; a row tap in `SearchView` assigns it directly
+- `query: String` — text the user is typing; any edit clears `selection`, returning the highlight to the top result
+- `selection: AppRecord.ID?` — the row the user moved to, held by identity so a rescan can't slide it onto another app. `nil` means the top result. `selectedApp(in:)` resolves it against `results` and falls back to the top result if that app has gone. `selectNext` and `selectPrev` stop at the first and last rows with no wrap; a row tap in `SearchView` assigns it directly
 - `conflictActive`, `activeHotkey` — UX flags pushed by `AppDelegate` from `HotkeyController`'s `onBindingChanged`
 - `welcomeActive` — UX flag pushed by `PanelController` from `WelcomeFlag`
 - `onLaunch`, `onDismissRequested` — callbacks (`@ObservationIgnored`)
@@ -110,7 +110,7 @@ Matching is one-way. Stored "saf" can boost typed "s" and "sa", but typed "safa"
 
 `results` is a computed property — the ranking happens on every read, with no caching, and an empty query returns `[]`. `SearchView` and `PanelController` read it several times per render, and callers that use it more than once hold it in a local. Each app is scored against both its `displayName` and its on-disk `fileName` (the `.app` name without extension, skipped when identical), keeping the better match — this is what lets "vscode" find "Visual Studio Code" whose display name is just "Code". The candidate's final score is `max(matchScore, 1) × frecencyMultiplier` — the floor matters because gap penalties can drive the match score negative, and multiplying a negative base by a frecency boost would rank an app worse the more it's launched. Sort key: `score desc, displayName.count asc, displayName alpha asc` (`localizedCaseInsensitiveCompare`). Capped at `maxResults = 8`.
 
-`launchSelection()` invokes `onLaunch` (with the selected record and current query), then `onDismissRequested`; an out-of-range `selection` only dismisses. `AppDelegate` wires `onLaunch` in its lazy `model` initializer (record frecency, then open the app) and `onDismissRequested` in `applicationDidFinishLaunching` (`PanelController.hide()`), so a launch records frecency, opens the app, and hides the panel in one shot.
+`launchSelection()` invokes `onLaunch` (with the selected record and current query), then `onDismissRequested`; with no results it only dismisses. `AppDelegate` wires `onLaunch` in its lazy `model` initializer (record frecency, then open the app) and `onDismissRequested` in `applicationDidFinishLaunching` (`PanelController.hide()`), so a launch records frecency, opens the app, and hides the panel in one shot.
 
 ## See also
 

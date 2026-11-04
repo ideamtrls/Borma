@@ -105,7 +105,7 @@ The final force-unwrap crashes on zero attached displays. Rare edge case (clamsh
 Triggers:
 
 - **Esc** — `.onKeyPress(.escape)` on the `TextField` calls `model.onDismissRequested`, which `AppDelegate` wires to `panel.hide()`.
-- **Return** — `.onSubmit` calls `LauncherModel.launchSelection()`. If `results` has an entry at `selection`, it invokes `onLaunch` then `onDismissRequested`; otherwise (empty query, no matches) it invokes only `onDismissRequested`. The launch outcome isn't checked: `AppLauncher.launch` is asynchronous and a failure logs and beeps after the panel is gone.
+- **Return** — `.onSubmit` calls `LauncherModel.launchSelection()`. If `selectedApp(in:)` finds an app, it invokes `onLaunch` then `onDismissRequested`; otherwise (empty query, no matches) it invokes only `onDismissRequested`. The launch outcome isn't checked: `AppLauncher.launch` is asynchronous and a failure logs and beeps after the panel is gone.
 - **Click on a result row** — `.onTapGesture` sets `model.selection` and calls `launchSelection()`.
 - **Hotkey re-pressed** — `HotkeyController` runs its `onTrigger` closure, which `AppDelegate` wires to `panel.toggle()`; `toggle()` calls `hide()` if visible.
 - **Show Borma menu item** — also `toggle()`, so it hides a visible panel.

@@ -76,7 +76,7 @@ AppInfo               — Bundle identity (`bundleID`), read from the bundle at 
 
 **Hotkey pressed.** `HotkeyController` invokes its `onTrigger` callback. `PanelController.toggle()` orders the panel front and makes it key (or hides it if it was already visible). The menu bar's "Show Borma" calls the same `toggle()`.
 
-**User types.** SwiftUI publishes the query to `LauncherModel`, and editing it resets `selection` to 0. `results` is a computed property, empty for an empty query: score each `AppRecord`'s display name and file name via `Matcher.score(...)` and keep the better one (apps matching neither drop out), floor that at 1, multiply by `FrecencyStore.multiplier(...)`, sort by score (then name length, then alphabetical), take top 8 (`LauncherModel.maxResults`).
+**User types.** SwiftUI publishes the query to `LauncherModel`, and editing it clears `selection`, returning the highlight to the top result. `results` is a computed property, empty for an empty query: score each `AppRecord`'s display name and file name via `Matcher.score(...)` and keep the better one (apps matching neither drop out), floor that at 1, multiply by `FrecencyStore.multiplier(...)`, sort by score (then name length, then alphabetical), take top 8 (`LauncherModel.maxResults`).
 
 **Return.** Return or a row click calls `LauncherModel.launchSelection()`, which invokes `onLaunch`. `AppDelegate` wires that to `FrecencyStore.record(query:bundleId:)` + `AppLauncher.launch(...)`. Then `onDismissRequested` fires → `PanelController.hide()`. With no result to launch, only the dismiss fires.
 

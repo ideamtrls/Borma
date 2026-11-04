@@ -10,11 +10,12 @@ import Observation
 final class LauncherModel {
     var apps: [AppRecord] = []
     var query: String = "" {
-        // Editing the query replaces the results underneath the selection;
-        // keeping the old index would highlight (and launch) the wrong app.
-        didSet { if query != oldValue { selection = 0 } }
+        // A new query is a new list, so start again from its top result.
+        didSet { if query != oldValue { selection = nil } }
     }
-    var selection: Int = 0
+    /// The row the user moved to. Held by identity rather than position, so a
+    /// rescan can't slide it onto another app. `nil` means the top result.
+    var selection: AppRecord.ID?
 
     var welcomeActive: Bool = true
     var conflictActive: Bool = false
@@ -61,29 +62,36 @@ final class LauncherModel {
         return Array(scored.prefix(Self.maxResults)).map { $0.0 }
     }
 
+    /// The app Return would launch: the chosen row if it's still listed,
+    /// otherwise the top result.
+    func selectedApp(in results: [AppRecord]) -> AppRecord? {
+        results.first { $0.id == selection } ?? results.first
+    }
+
     func reset() {
         query = ""
-        selection = 0
+        selection = nil
     }
 
     func selectNext() {
-        let count = results.count
-        guard count > 0 else { return }
-        selection = min(selection + 1, count - 1)
+        moveSelection(by: 1)
     }
 
     func selectPrev() {
-        guard !results.isEmpty else { return }
-        selection = max(selection - 1, 0)
+        moveSelection(by: -1)
+    }
+
+    private func moveSelection(by offset: Int) {
+        let r = results
+        guard !r.isEmpty else { return }
+        let current = r.firstIndex { $0.id == selection } ?? 0
+        selection = r[min(max(current + offset, 0), r.count - 1)].id
     }
 
     func launchSelection() {
-        let r = results
-        guard r.indices.contains(selection) else {
-            onDismissRequested?()
-            return
+        if let app = selectedApp(in: results) {
+            onLaunch?(app, query)
         }
-        onLaunch?(r[selection], query)
         onDismissRequested?()
     }
 }

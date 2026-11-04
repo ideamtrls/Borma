@@ -142,17 +142,18 @@ struct SearchView: View {
 
             let results = model.results
             if !results.isEmpty {
+                let selected = model.selectedApp(in: results)
                 Divider().opacity(0.2)
                 VStack(spacing: 0) {
-                    ForEach(Array(results.enumerated()), id: \.element.id) { i, app in
+                    ForEach(results) { app in
                         ResultRow(
                             app: app,
-                            isSelected: i == model.selection,
+                            isSelected: app.id == selected?.id,
                             highlight: config.highlightColor
                         )
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                model.selection = i
+                                model.selection = app.id
                                 model.launchSelection()
                             }
                     }
