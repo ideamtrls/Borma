@@ -7,31 +7,26 @@ Rules that apply to *every* task (area-specific conventions live in the memory f
 - **Logging:** Use `Log.<category>` from `Sources/App/Logging.swift`; never `print()`. Add `privacy: .public` to interpolated values you intend to surface in Console.
 - **Doc updates:** When you change behavior, update the matching `Memory/` file as part of the same change. Run `/memorymtrls:improve` periodically to audit the whole memory set.
 
-<!-- memorymtrls:start -->
+<!-- digestmtrls:start -->
 
-`.notes/` should be used for **personal workflow scratch** and gitignored. Place artifacts produced while working in here, such as plans, specs, exploratory writeups, eg thinking out loud.
+## Digest
 
-- Plans → `.notes/plans/YYYY-MM-DD-<slug>.md` — execution outlines for multi-step work. Stay as historical record after the work lands.
-- Specs → `.notes/specs/YYYY-MM-DD-<slug>.md` — designs before implementation. After landing, fold architectural takeaways into the relevant `Memory/` file.
-- Other → `.notes/scratch/`.
+This project's working context lives in `Digest/`, with one file per category of context. The table below maps task level concerns to the context file(s) that cover it.
 
-## Memory
+**IMPORTANT: Before starting a task, scan this table. If any rows match the task, read the relevant digest files, and then start the task. If you're unsure about a row, read only the first 6 lines of its file, the frontmatter, and decide from those.** Read only the rows that match. Context window efficiency is gained by not reading irrelevant context; if nothing matches, proceed without reading any.
 
-This project's working context lives in `Memory/`, with one file per category of context. The table below maps task level concerns to the context file(s) that cover it.
+**IMPORTANT: Before finishing a task that changed how an area works or where its code lives, update that area's digest file.** Keep edits surgical and bump `updated`. Digest files describe the current state of the system — what *is*, never what *was*. Do not narrate the change ("previously", "no longer", "moved from…"); rewrite the affected text as if the current state had always been true. If the work created a new area with no matching file, tell the user rather than inventing a category.
 
-**IMPORTANT: Before starting a task, scan this table. If any rows match the task, read the relevant memory files, and then start the task.** Read only the rows that match. Context window efficiency is gained by not reading irrelevant context; if nothing matches, proceed without reading any.
-
-**IMPORTANT: Before finishing a task that changed how an area works, update that area's memory file.** Keep edits surgical and bump `updated`. Memory files describe the current state of the system — what *is*, never what *was*. Do not narrate the change ("previously", "no longer", "moved from…"); rewrite the affected text as if the current state had always been true. If the work created a new area with no matching file, tell the user rather than inventing a category.
-
-| Memory file | Read this when… |
+| Digest file | Read this when… |
 | ----------- | --------------- |
-| `Memory/overview.md` | getting oriented; locating where something is defined, what runs at startup, where config/frecency live on disk, or how the dismiss flow works |
-| `Memory/build.md` | regenerating the Xcode project, changing `project.yml` or `Borma.entitlements`, adding an SPM dependency, or fixing signing / sandbox / CI build issues |
-| `Memory/concurrency.md` | touching async / isolation code, hitting a `Sendable` or data-race error, writing an FSEvents wrapper, or chasing an FSEvents-callback / `dispatch_assert_queue` crash |
-| `Memory/search.md` | working on app discovery, fuzzy-match scoring, frecency ranking, or an "app missing from results" / "ranking feels wrong" bug |
-| `Memory/panel.md` | changing panel sizing / position / dismissal, the welcome bib, or the conflict banner — or a "panel resizes / dismisses wrong" bug |
-| `Memory/hotkey.md` | working on the global hotkey, diagnosing "hotkey not firing", or the Spotlight ⌘Space conflict + fallback |
-| `Memory/glossary.md` | you hit Borma-specific jargon (frecency, welcome bib, conflict banner, two-name pattern, ContinuationBox) and need the definition |
-| `Memory/index.md` | you can't find the right doc from this table, or need the source→doc reverse map, doc sizes, or the full task index |
+| `Digest/overview.md` | getting oriented; locating where something is defined, what runs at startup, the config schema, logging, where config/frecency/UserDefaults live on disk, or a "config edit has no effect" / "config reset to defaults" problem |
+| `Digest/build.md` | regenerating the Xcode project, changing `project.yml` or `Borma.entitlements`, adding an SPM dependency or source file, bumping the version, a blank app icon, how the app sandbox changes runtime behavior, or fixing signing / CI build issues |
+| `Digest/concurrency.md` | touching async / isolation code, hitting a `Sendable`, `nonisolated`, or data-race error, adding a custom `Shape`, writing an FSEvents wrapper, or chasing an FSEvents-callback / `dispatch_assert_queue` crash |
+| `Digest/search.md` | working on app discovery, fuzzy-match scoring, frecency ranking, or an "app missing from results" / "ranking feels wrong" bug |
+| `Digest/panel.md` | changing the search view, panel sizing / position / dismissal, Settings adoption, the welcome bib, or the conflict banner — or a "panel resizes / dismisses wrong" bug |
+| `Digest/hotkey.md` | working on the global hotkey, diagnosing "hotkey not firing" or "conflict banner never shows", or the Spotlight ⌘Space conflict + fallback |
+| `Digest/glossary.md` | you hit Borma-specific jargon (frecency, welcome bib, conflict banner, two-name pattern, ContinuationBox) and need the definition |
+| `Digest/index.md` | you can't find the right file from this table, need the source→digest reverse map, or want a dev command (reset frecency / config / welcome bib, force a Spotlight conflict) or a schema-change recipe |
+| `Digest/notes.md` | writing a plan, spec, or scratch notes (these go in `.notes/`, which is gitignored) |
 
-<!-- memorymtrls:end -->
+<!-- digestmtrls:end -->

@@ -1,92 +1,71 @@
 ---
-scope: Deep index — source→doc reverse map, doc sizes, full task index
+scope: Reverse map from source file to covering digest, plus a task index of dev commands and change recipes
 globs: []
-keywords: [index, navigation, quickstart, reverse map, source to doc, doc sizes, task index, can't find the right doc, which doc covers this file]
-updated: 2026-06-10
+keywords: [index, navigation, reverse map, which digest covers this file, can't find the right digest, task index, dev commands, reset frecency, reset config, reset welcome bib, force Spotlight conflict, config schema change, frecency schema migration, add a setting, add a source file, add a log category, view logs, version bump]
+updated: 2026-11-03
 ---
 
-# Memory index
+# Digest index
 
-The deep index. `CLAUDE.md` carries the quick version (the generated router table, plus conventions). This file adds: a reverse map (source file → which docs cover it), doc sizes for context budgeting, and the full glossary pointer.
-
-If you're loading docs into context: read `CLAUDE.md` first (always loaded anyway), come here only when you need the reverse map or a doc you can't locate from the router table.
-
-## Quickstart for a fresh agent
-
-1. **Read `overview.md`** for the system map.
-2. **Skim `glossary.md`** for Borma-specific vocabulary (frecency, bib, conflict banner, two-name pattern, ContinuationBox, etc.).
-3. **Read the topic-specific doc** for what you're touching — see "By topic" below or in `CLAUDE.md`.
-4. **Apply Conventions** from `CLAUDE.md` before writing code.
-5. **If your task isn't on either table**, fall back to the reverse map below to find the right doc from the source file you're editing.
-
-## By topic
-
-Every memory file is small enough to read in full — pick the topic, open that file, and don't bother budgeting by length.
-
-| Topic | File |
-| --- | --- |
-| System map, source layout, component graph, data flow, persistence | `overview.md` |
-| xcodegen, project regeneration, dev loop, asset catalog | `build.md` |
-| Swift 6 isolation, AppKit hopping, FSEvents `ContinuationBox` pattern | `concurrency.md` |
-| App discovery, fuzzy matching, frecency | `search.md` |
-| NSPanel configuration, window behavior, welcome flag | `panel.md` |
-| Global hotkey, Spotlight conflict fallback | `hotkey.md` |
-| Borma-specific terminology | `glossary.md` |
+Reverse map from source file to covering digest, plus a task index of dev commands and change recipes.
 
 ## By source file (reverse map)
 
-When you're editing a specific source file, look here for which docs cover it.
+The primary doc is the one whose `globs` claim the file and that owns the deep explanation.
 
 | Source file | Primary doc | Also covered in |
 | --- | --- | --- |
 | `Sources/App/BormaApp.swift` | `overview.md` (Scenes, MenuBarExtra, Settings) | `hotkey.md` (Recorder→`refreshHotkeyBinding`) |
-| `Sources/App/AppDelegate.swift` | `overview.md` (component graph, data flow) | `search.md` (model wiring), `concurrency.md` (rescan dispatch) |
-| `Sources/App/Logging.swift` | — | `CLAUDE.md` Conventions ("use `Log.<category>`"); subsystem from `AppInfo` |
+| `Sources/App/AppDelegate.swift` | `overview.md` (component graph, data flow) | `search.md` (model wiring), `concurrency.md` (watcher attach and reassign), `hotkey.md` (binding callback) |
+| `Sources/App/Logging.swift` | `overview.md` (`Log` categories, subsystem) | `CLAUDE.md` header (the `Log.<category>` rule) |
 | `Sources/App/AppInfo.swift` | `overview.md` (bundle identity; backs log subsystem + App Support dir) | — |
-| `Sources/App/WelcomeFlag.swift` | `panel.md` (welcome bib retire-on-hide) | `glossary.md` |
-| `Sources/Panel/Panel.swift` | `panel.md` (NSPanel, sizing, Settings adoption) | `concurrency.md` (observation re-arm) |
-| `Sources/Panel/SearchView.swift` | `panel.md` (rendering, hotkey formatting) | `hotkey.md` (conflict banner) |
+| `Sources/App/WelcomeFlag.swift` | `panel.md` (welcome bib retire-on-hide) | `glossary.md`, `overview.md` (UserDefaults key) |
+| `Sources/Panel/Panel.swift` | `panel.md` (NSPanel, sizing, observation re-arm, Settings adoption) | `glossary.md` (observation re-arm), `concurrency.md` (`onChange` hop) |
+| `Sources/Panel/SearchView.swift` | `panel.md` (rendering, hotkey formatting) | `hotkey.md` (conflict banner), `concurrency.md` (`nonisolated` `Shape`) |
 | `Sources/Panel/LayoutMetrics.swift` | `panel.md` (sizing) | `concurrency.md` (`nonisolated` for `Shape`) |
 | `Sources/Config/Config.swift` | `overview.md` (persistence shape) | — |
-| `Sources/Config/ConfigStore.swift` | `overview.md` (persistence) | `panel.md` (Settings binding) |
+| `Sources/Config/ConfigStore.swift` | `overview.md` (persistence) | `panel.md` (`alwaysShowHint` observation), `concurrency.md` (atomic saves, directory watch) |
 | `Sources/Config/FileWatcher.swift` | `concurrency.md` (`ContinuationBox`) | `overview.md` (data flow), `glossary.md` |
 | `Sources/Search/Apps.swift` | `search.md` (`AppScanner`, `AppLauncher`) | `concurrency.md` (off-main scan, `Sendable`) |
-| `Sources/Search/Matcher.swift` | `search.md` (scoring constants) | — |
-| `Sources/Search/FrecencyStore.swift` | `search.md` (formula, migration) | `glossary.md` |
+| `Sources/Search/Matcher.swift` | `search.md` (scoring constants) | `concurrency.md` (default isolation) |
+| `Sources/Search/FrecencyStore.swift` | `search.md` (formula, migration) | `glossary.md`, `overview.md` (on-disk location) |
 | `Sources/Search/LauncherModel.swift` | `search.md` (orchestrator) | `panel.md` (observation surface) |
 | `Sources/Hotkey/Hotkey.swift` | `hotkey.md` (controller, Spotlight detection) | `glossary.md` (two-name pattern, active vs. saved) |
-| `project.yml` | `build.md` (xcodegen) | — |
-| `Borma.entitlements` | `build.md` (app sandbox, signing) | — |
+| `Sources/Resources/Assets.xcassets` | `build.md` (`AppIcon`, `MenuBarIcon`) | — |
+| `project.yml` | `build.md` (xcodegen) | `concurrency.md` (`-default-isolation MainActor`), `overview.md` (bundle id) |
+| `Borma.entitlements` | `build.md` (app sandbox, signing) | `overview.md` (data paths), `hotkey.md` (conflict detection) |
 
-## Task index (full)
+## Task index
 
-Situations mapped to the doc(s) to read. Richer than the router's coarse "read when" rows.
+Paths below assume a signed build, which runs in the App Sandbox; `overview.md` ("Persistence") has the layout.
 
-| When you want to… | Read |
+Reset commands need Borma quit, because a running app undoes them: `FrecencyStore.record()` re-saves its whole in-memory history, the config watcher's `ConfigStore.load()` writes a missing `config.json` straight back, and the next `PanelController.hide()` re-retires the welcome flag.
+
+| When you want to… | Read or run |
 | --- | --- |
-| Add a new persisted user setting | `overview.md` (persistence), `Sources/Config/Config.swift`, `BormaApp.swift` (Settings scene) |
-| Add a new SwiftUI view inside the panel | `panel.md` (NSHostingView, observation re-arm) |
-| Add a new toggle to Settings | `BormaApp.swift` (SettingsView), `Sources/Config/Config.swift` (Config struct + `init(from:)` migration) |
-| Adopt a new external SPM dependency | `build.md` (project.yml packages), then `xcodegen generate` |
+| Add a new persisted user setting or Settings toggle | `overview.md` (Config schema), `Sources/Config/Config.swift`, `SettingsView` in `Sources/App/BormaApp.swift` |
+| Add a new source file | Run `xcodegen generate` afterward: the generated project lists each `Sources/` file individually, so a new one isn't in the build until then (`build.md`) |
+| Add a new SwiftUI view inside the panel | `panel.md` (NSHostingView, observation re-arm); state that changes the panel's height must also be read in `PanelController.observeResults()` |
+| Adopt a new external SPM dependency | `build.md` (`project.yml` `packages:` and the target's `dependencies:`), then `xcodegen generate` |
+| Bump the app version | `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `project.yml`, then `xcodegen generate` |
 | Change panel sizing or positioning | `panel.md`, `concurrency.md` (`Shape` isolation) |
+| Change the default hotkey | `hotkey.md`; `fallbackShortcut` in `Sources/Hotkey/Hotkey.swift` is both the `.toggleBorma` default and the Spotlight fallback |
 | Diagnose a hotkey-not-firing bug | `hotkey.md` (conflict + fallback) |
-| Force a Spotlight conflict in dev | System Settings → Keyboard → Keyboard Shortcuts → Spotlight → restore ⌘Space |
-| Migrate the frecency on-disk schema | `search.md` (`FrecencyStore` migration); model the v1→v2 example in `FrecencyDataV1.migrated()` |
-| Migrate the config on-disk schema | `Sources/Config/Config.swift` (`init(from:)` already does forward-compatible decoding via `decodeIfPresent`); bump `version` if shape changes |
-| Reset frecency state | `rm ~/Library/Application\ Support/com.ideamtrls.borma/frecency.json` |
-| Reset the welcome bib in dev | `defaults delete com.ideamtrls.borma borma.welcome.dismissed` |
+| Force a Spotlight conflict in dev | Use an unsigned build (`build.md`, CLI builds), because detection never fires under the sandbox (`hotkey.md`). Then both conditions must hold: the saved binding is ⌘Space (record it in Settings, choosing "Use Anyway" if Spotlight holds it) and Spotlight's shortcut is enabled on ⌘Space (System Settings → Keyboard → Keyboard Shortcuts → Spotlight). `evaluateBinding()` checks only at launch and on a recorder change, so relaunch after changing Spotlight |
+| Migrate the frecency on-disk schema | `search.md` (`FrecencyStore` migration). Bump `FrecencyData.currentVersion`, add a legacy struct and a branch in `FrecencyStore.load()`, and model the conversion on `FrecencyDataV1.migrated()`. A file no branch decodes leaves history empty, and the next save overwrites it |
+| Migrate the config on-disk schema | `Sources/Config/Config.swift`; `overview.md` (Config schema) has the `decodeIfPresent` rule. Nothing reads `version` after decoding and a loaded file keeps its stored value, so a breaking change needs a branch on it in `init(from:)` as well as a new value in `Config.default` |
+| Reset config | Quit Borma, then `rm ~/Library/Containers/com.ideamtrls.borma/Data/Library/Application\ Support/com.ideamtrls.borma/config.json`. The next launch writes defaults |
+| Reset frecency state | Quit Borma, then `rm ~/Library/Containers/com.ideamtrls.borma/Data/Library/Application\ Support/com.ideamtrls.borma/frecency.json` |
+| Reset the welcome bib in dev | Quit Borma, then `defaults delete com.ideamtrls.borma borma.welcome.dismissed`. `defaults` resolves that domain to the plist in the container. The next launch opens the panel with the bib |
 | Surface a new log category | `Sources/App/Logging.swift` (add to `Log` enum), then `Log.<category>.error(...)` |
 | Tune fuzzy-match scoring | `search.md` (`Matcher` constants table) |
-| Wrap another FSEvents/Carbon API | `concurrency.md` (`ContinuationBox` pattern) |
+| View Borma's logs | `overview.md` (Logging), or filter by the `com.ideamtrls.borma` subsystem in Console.app |
+| Wrap another FSEvents-style C API (callback + `info` pointer) | `concurrency.md` (`ContinuationBox` pattern) |
 
-## Conventions
+## Keeping this file current
 
-See `CLAUDE.md`'s **Conventions** section. Always loaded into context — there's no point duplicating here.
+This file has `globs: []`, so no source change routes here: when a source file is added, moved, or removed, update the reverse map in the same change. The `CLAUDE.md` router table is generated from each digest file's frontmatter, so change a row by editing that file's `scope` or `keywords`; `/digestmtrls:improve` audits the whole digest set and regenerates the table.
 
-## Glossary
+## See also
 
-See `glossary.md`.
-
-## Keeping docs current
-
-Memory files are updated inline, as part of any change that alters how an area works (see the maintenance instruction in `CLAUDE.md`): edit the file whose `globs:` cover the changed source and bump its `updated`. Run `/memorymtrls:improve` periodically to audit the whole set — it enforces the format spec, rewrites stale claims against the current source, and regenerates the router.
+- `overview.md` — system map; the place to start when neither table above matches.
