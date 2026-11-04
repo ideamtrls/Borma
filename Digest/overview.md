@@ -106,7 +106,7 @@ UserDefaults live in the same container (`Data/Library/Preferences/com.ideamtrls
 - `KeyboardShortcuts_toggleBorma` — the user's hotkey, a JSON string written by the `KeyboardShortcuts` package. Seeded with ⌘⇧Space by the `default:` on `.toggleBorma`.
 - `KeyboardShortcuts_toggleBormaFallback` — exists only while the Spotlight fallback is active.
 
-Borma stores no launch-at-login state: `SettingsView` reads and sets it through `SMAppService.mainApp`, and a failed change logs, beeps, and resyncs the toggle from `status`.
+Borma stores no launch-at-login state: `SettingsView` reads and sets it through `SMAppService.mainApp` and holds the `SMAppService.Status` it read last. The toggle is on only for `.enabled`. While the status is `.requiresApproval`, a button opens System Settings' Login Items, and the status is re-read whenever Borma becomes active. A failed change logs and beeps once, and every attempt refreshes the status.
 
 Both JSON files are written atomically (`Data.write(to:options: .atomic)`). No in-memory cache is persisted; rescans run from scratch.
 

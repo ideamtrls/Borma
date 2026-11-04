@@ -34,7 +34,16 @@ struct BormaApp: App {
 private struct SettingsView: View {
     @Bindable var config: ConfigStore
     let onShortcutChange: () -> Void
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var loginItemStatus = SMAppService.mainApp.status
+
+    /// The side effect lives in the setter rather than an `onChange`, so
+    /// refreshing `loginItemStatus` can't trigger another register or unregister.
+    private var launchAtLogin: Binding<Bool> {
+        Binding(
+            get: { loginItemStatus == .enabled },
+            set: { setLaunchAtLogin($0) }
+        )
+    }
 
     private var useSystemAccent: Binding<Bool> {
         Binding(
@@ -56,8 +65,10 @@ private struct SettingsView: View {
                 KeyboardShortcuts.Recorder("Hotkey:", name: .toggleBorma) { _ in
                     onShortcutChange()
                 }
-                Toggle("Launch at login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
+                Toggle("Launch at login", isOn: launchAtLogin)
+                if loginItemStatus == .requiresApproval {
+                    Button("Allow in Login Items…") { SMAppService.openSystemSettingsLoginItems() }
+                }
                 Toggle("Always show hotkey", isOn: $config.config.alwaysShowHint)
                 Toggle("Use system accent color", isOn: useSystemAccent)
                 ColorPicker("Highlight color:", selection: highlightColor, supportsOpacity: false)
@@ -73,6 +84,11 @@ private struct SettingsView: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .frame(width: 420)
+        // The status can change in System Settings, which sends no notification
+        // of its own, so re-read it on the way back.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            loginItemStatus = SMAppService.mainApp.status
+        }
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
@@ -84,8 +100,8 @@ private struct SettingsView: View {
             }
         } catch {
             Log.app.error("Failed to \(enabled ? "register" : "unregister", privacy: .public) launch-at-login: \(error.localizedDescription, privacy: .public)")
-            launchAtLogin = SMAppService.mainApp.status == .enabled
             NSSound.beep()
         }
+        loginItemStatus = SMAppService.mainApp.status
     }
 }
