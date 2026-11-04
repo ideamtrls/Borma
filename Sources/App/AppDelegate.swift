@@ -32,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let panel = PanelController(model: model, config: config, welcome: welcome)
         self.panel = panel
-        model.onDismissRequested = { [weak panel] in panel?.hide() }
+        model.onDismissRequested = { [weak panel] dismissal in panel?.hide(dismissal) }
 
         hotkey = HotkeyController(
             onTrigger: { [weak panel] in panel?.toggle() },

@@ -25,7 +25,7 @@ The notch hanging off the bottom of the panel, showing the active hotkey. It app
 
 ## Dismiss
 
-`PanelController.hide()`: orders the panel out, resets the query, and retires the welcome flag if it's still active. Click-away is not a dismiss.
+`PanelController.hide(_:)`: orders the panel out, resets the query, retires the welcome flag if it's still active, and hands focus back to the previous app unless an app is launching (`PanelDismissal`). Click-away is not a dismiss.
 
 - Source: `Sources/Panel/Panel.swift`.
 - Deep doc: `panel.md`.

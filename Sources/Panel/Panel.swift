@@ -15,6 +15,10 @@ final class PanelController {
 
     private var settingsWindow: NSWindow?
 
+    /// The app to hand focus back to when the panel is cancelled. `nil` when
+    /// the panel opened over Borma itself.
+    private var appBeneath: NSRunningApplication?
+
     init(model: LauncherModel, config: ConfigStore, welcome: WelcomeFlag) {
         self.model = model
         self.config = config
@@ -58,25 +62,50 @@ final class PanelController {
     }
 
     func toggle() {
-        if panel.isVisible { hide() } else { show() }
+        if panel.isVisible { hide(.cancelled) } else { show() }
     }
 
-    func hide() {
+    func hide(_ dismissal: PanelDismissal) {
         panel.orderOut(nil)
         model.reset()
         if welcome.isActive {
             welcome.retire()
             model.welcomeActive = false
         }
+        returnFocus(after: dismissal)
     }
 
     func show() {
+        rememberAppBeneath()
         model.reset()
         resize()
         position()
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
         observeResults()
+    }
+
+    /// Called before Borma activates. With Borma already frontmost there's
+    /// nothing new to remember, and `hide(_:)` has already cleared any old app.
+    private func rememberAppBeneath() {
+        guard let front = NSWorkspace.shared.frontmostApplication,
+              front.processIdentifier != NSRunningApplication.current.processIdentifier
+        else { return }
+        appBeneath = front
+    }
+
+    private func returnFocus(after dismissal: PanelDismissal) {
+        let app = appBeneath
+        appBeneath = nil
+        switch dismissal {
+        case .launching:
+            return
+        case .cancelled:
+            // If Borma isn't active, the user has already moved on to another
+            // app. An open Settings window keeps focus inside Borma.
+            guard NSApp.isActive, settingsWindow == nil else { return }
+            app?.activate()
+        }
     }
 
     /// For callers with no user gesture behind them: opening clears the query,

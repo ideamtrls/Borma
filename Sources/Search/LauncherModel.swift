@@ -1,6 +1,14 @@
 import Foundation
 import Observation
 
+/// Why the panel is closing, which decides where keyboard focus goes next.
+enum PanelDismissal {
+    /// An app is launching and takes focus itself.
+    case launching
+    /// Nothing launched, so focus goes back to the app the panel opened over.
+    case cancelled
+}
+
 /// Source of truth for the search session: the loaded apps, the live query and
 /// selection, transient UX flags, and the launch / dismiss callbacks the
 /// owning controller wires up. `@Observable` so the SwiftUI view re-renders
@@ -21,7 +29,7 @@ final class LauncherModel {
     var hotkeyBinding: HotkeyBinding?
 
     @ObservationIgnored var onLaunch: ((AppRecord, String) -> Void)?
-    @ObservationIgnored var onDismissRequested: (() -> Void)?
+    @ObservationIgnored var onDismissRequested: ((PanelDismissal) -> Void)?
 
     private let frecency: FrecencyStore
 
@@ -88,9 +96,11 @@ final class LauncherModel {
     }
 
     func launchSelection() {
-        if let app = selectedApp(in: results) {
-            onLaunch?(app, query)
+        guard let app = selectedApp(in: results) else {
+            onDismissRequested?(.cancelled)
+            return
         }
-        onDismissRequested?()
+        onLaunch?(app, query)
+        onDismissRequested?(.launching)
     }
 }

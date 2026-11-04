@@ -128,7 +128,7 @@ struct SearchView: View {
                 .frame(height: LauncherDimensions.fieldHeight)
                 .onSubmit { model.launchSelection() }
                 .onKeyPress(.escape) {
-                    model.onDismissRequested?()
+                    model.onDismissRequested?(.cancelled)
                     return .handled
                 }
                 .onKeyPress(.upArrow) {

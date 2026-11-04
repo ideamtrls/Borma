@@ -106,11 +106,11 @@ Matching is one-way. Stored "saf" can boost typed "s" and "sa", but typed "safa"
 - `welcomeActive` — UX flag pushed by `PanelController` from `WelcomeFlag`
 - `onLaunch`, `onDismissRequested` — callbacks (`@ObservationIgnored`)
 
-`reset()` clears `query` and `selection`; `PanelController` calls it from `show()` and `hide()`.
+`reset()` clears `query` and `selection`; `PanelController` calls it from `show()` and `hide(_:)`.
 
 `results` is a computed property — the ranking happens on every read, with no caching, and an empty query returns `[]`. `SearchView` and `PanelController` read it several times per render, and callers that use it more than once hold it in a local. Each app is scored against both its `displayName` and its on-disk `fileName` (the `.app` name without extension, skipped when identical), keeping the better match — this is what lets "vscode" find "Visual Studio Code" whose display name is just "Code". The candidate's final score is `max(matchScore, 1) × frecencyMultiplier` — the floor matters because gap penalties can drive the match score negative, and multiplying a negative base by a frecency boost would rank an app worse the more it's launched. Sort key: `score desc, displayName.count asc, displayName alpha asc` (`localizedCaseInsensitiveCompare`). Capped at `maxResults = 8`.
 
-`launchSelection()` invokes `onLaunch` (with the selected record and current query), then `onDismissRequested`; with no results it only dismisses. `AppDelegate` wires `onLaunch` in its lazy `model` initializer (record frecency, then open the app) and `onDismissRequested` in `applicationDidFinishLaunching` (`PanelController.hide()`), so a launch records frecency, opens the app, and hides the panel in one shot.
+`launchSelection()` invokes `onLaunch` (with the selected record and current query), then `onDismissRequested`; with no results it only dismisses. `AppDelegate` wires `onLaunch` in its lazy `model` initializer (record frecency, then open the app) and `onDismissRequested` in `applicationDidFinishLaunching` (`PanelController.hide(_:)`), so a launch records frecency, opens the app, and hides the panel in one shot.
 
 ## See also
 

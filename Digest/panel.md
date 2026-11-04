@@ -41,7 +41,7 @@ The SwiftUI root view is hosted via `NSHostingView(rootView: SearchView(...))`, 
 
 ## Showing
 
-`show()` runs `model.reset()`, `resize()`, `position()`, `NSApp.activate(ignoringOtherApps: true)`, `panel.makeKeyAndOrderFront(nil)`, and `observeResults()`, in that order. `position()` reads the height `resize()` just set. The activation is explicit because `.nonactivatingPanel` doesn't activate the app on its own.
+`show()` runs `rememberAppBeneath()`, `model.reset()`, `resize()`, `position()`, `NSApp.activate(ignoringOtherApps: true)`, `panel.makeKeyAndOrderFront(nil)`, and `observeResults()`, in that order. `position()` reads the height `resize()` just set. The activation is explicit because `.nonactivatingPanel` doesn't activate the app on its own.
 
 Callers:
 
@@ -64,13 +64,13 @@ Width is fixed at `panelWidth` (640pt). Height is computed via `LauncherDimensio
 
 - `model.results.count` — `results` is computed, so this registers `query`, plus `apps` when the query is non-empty. A background rescan can resize an open panel.
 - `model.query.isEmpty`
-- `model.welcomeActive` — written only in `PanelController.init` and in `hide()` after `orderOut`, so it never resizes a visible panel.
+- `model.welcomeActive` — written only in `PanelController.init` and in `hide(_:)` after `orderOut`, so it never resizes a visible panel.
 - `model.hotkeyBinding` — `HotkeyController`'s re-checks can change it while the panel is open, which changes whether the bib shows.
 - `config.config.alwaysShowHint` — registers the whole `config` property, so any change to it, from Settings or a config reload, fires.
 
 On any change, the panel resizes without animation (anchored at the top — the search field stays in place, additional results extend downward) and re-installs the tracking. `onChange` fires once per arming, before the new value lands, so the closure defers to a main-actor `Task` (`concurrency.md` has the hop), returns if the panel isn't visible, and otherwise calls `resize()` and `observeResults()`.
 
-`show()` arms a tracking unconditionally. A `hide()` that changes nothing tracked (the query was already empty) leaves the earlier tracking armed alongside the new one. Each extra adds one redundant `resize()` per change, and all of them clear on the next hide with a typed query, because the closures then return without re-arming.
+`show()` arms a tracking unconditionally. A `hide(_:)` that changes nothing tracked (the query was already empty) leaves the earlier tracking armed alongside the new one. Each extra adds one redundant `resize()` per change, and all of them clear on the next hide with a typed query, because the closures then return without re-arming.
 
 `LauncherDimensions` and `LauncherSurface` are `nonisolated`; `concurrency.md` explains why.
 
@@ -100,17 +100,20 @@ The final force-unwrap crashes on zero attached displays. Rare edge case (clamsh
 
 ## Dismissal
 
-`hide()` runs `panel.orderOut(nil)`, `model.reset()`, and the welcome retire step. It doesn't deactivate Borma or hand focus back to the app it opened over.
+`hide(_:)` runs `panel.orderOut(nil)`, `model.reset()`, the welcome retire step, and `returnFocus(after:)`. Its `PanelDismissal` argument decides where focus goes:
+
+- `.launching` — the launched app takes focus itself.
+- `.cancelled` — `appBeneath` is activated. `rememberAppBeneath()` records it in `show()`, before Borma activates, and it stays `nil` when the panel opened over Borma itself. Nothing is activated if Borma is no longer active, because the user has already moved to another app, or if `settingsWindow` is set, because Settings keeps focus.
 
 Triggers:
 
-- **Esc** — `.onKeyPress(.escape)` on the `TextField` calls `model.onDismissRequested`, which `AppDelegate` wires to `panel.hide()`.
-- **Return** — `.onSubmit` calls `LauncherModel.launchSelection()`. If `selectedApp(in:)` finds an app, it invokes `onLaunch` then `onDismissRequested`; otherwise (empty query, no matches) it invokes only `onDismissRequested`. The launch outcome isn't checked: `AppLauncher.launch` is asynchronous and a failure logs and beeps after the panel is gone.
+- **Esc** — `.onKeyPress(.escape)` on the `TextField` calls `model.onDismissRequested` with `.cancelled`, which `AppDelegate` wires to `panel.hide(_:)`.
+- **Return** — `.onSubmit` calls `LauncherModel.launchSelection()`. If `selectedApp(in:)` finds an app, it invokes `onLaunch` then `onDismissRequested` with `.launching`; otherwise (empty query, no matches) it invokes only `onDismissRequested`, with `.cancelled`. The launch outcome isn't checked: `AppLauncher.launch` is asynchronous and a failure logs and beeps after the panel is gone.
 - **Click on a result row** — `.onTapGesture` sets `model.selection` and calls `launchSelection()`.
-- **Hotkey re-pressed** — `HotkeyController` runs its `onTrigger` closure, which `AppDelegate` wires to `panel.toggle()`; `toggle()` calls `hide()` if visible.
+- **Hotkey re-pressed** — `HotkeyController` runs its `onTrigger` closure, which `AppDelegate` wires to `panel.toggle()`; `toggle()` calls `hide(_:)` if visible.
 - **Show Borma menu item** — also `toggle()`, so it hides a visible panel.
 
-**Click-away does *not* dismiss the panel.** `hidesOnDeactivate = false` is set deliberately, and `panelResignedKey(_:)` doesn't call `hide()`. The panel stays on screen at `.statusBar` level, above normal windows but not key, until one of the triggers above fires. Keystrokes go to the new key window, so Esc and Return don't reach it. `toggle()` checks only `panel.isVisible`, so the hotkey hides a panel that has lost key rather than refocusing it.
+**Click-away does *not* dismiss the panel.** `hidesOnDeactivate = false` is set deliberately, and `panelResignedKey(_:)` doesn't call `hide(_:)`. The panel stays on screen at `.statusBar` level, above normal windows but not key, until one of the triggers above fires. Keystrokes go to the new key window, so Esc and Return don't reach it. `toggle()` checks only `panel.isVisible`, so the hotkey hides a panel that has lost key rather than refocusing it.
 
 ## Settings adoption
 
@@ -120,7 +123,7 @@ This logic only kicks in for windows owned by the app, and it adopts any of them
 
 ## Welcome bib retires on first dismiss
 
-`PanelController.init` seeds `model.welcomeActive` from `welcome.isActive`. `hide()` retires the flag on the first call where it is still active:
+`PanelController.init` seeds `model.welcomeActive` from `welcome.isActive`. `hide(_:)` retires the flag on the first call where it is still active:
 
 ```swift
 if welcome.isActive {
@@ -129,7 +132,7 @@ if welcome.isActive {
 }
 ```
 
-The flag is set on `hide()`, not on app quit. While it is active the panel opens itself at launch, so a user who quits without dismissing the panel sees it and the welcome bib again on their next launch.
+The flag is set on `hide(_:)`, not on app quit. While it is active the panel opens itself at launch, so a user who quits without dismissing the panel sees it and the welcome bib again on their next launch.
 
 ## The bib
 

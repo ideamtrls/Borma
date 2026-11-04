@@ -39,7 +39,7 @@ The primary doc is the one whose `globs` claim the file and that owns the deep e
 
 Paths below assume a signed build, which runs in the App Sandbox; `overview.md` ("Persistence") has the layout.
 
-Reset commands need Borma quit, because a running app undoes them: `FrecencyStore.record()` re-saves its whole in-memory history, the config watcher's `ConfigStore.reload()` writes a missing `config.json` straight back, and the next `PanelController.hide()` re-retires the welcome flag.
+Reset commands need Borma quit, because a running app undoes them: `FrecencyStore.record()` re-saves its whole in-memory history, the config watcher's `ConfigStore.reload()` writes a missing `config.json` straight back, and the next `PanelController.hide(_:)` re-retires the welcome flag.
 
 | When you want to… | Read or run |
 | --- | --- |
