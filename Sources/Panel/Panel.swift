@@ -6,6 +6,22 @@ private final class FloatingPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
+/// Where the panel stands from the hotkey's point of view.
+enum PanelPresence: Equatable {
+    case hidden
+    /// On screen, but another window has keyboard focus.
+    case unfocused
+    case focused
+
+    init(isVisible: Bool, isKey: Bool) {
+        switch (isVisible, isKey) {
+        case (false, _): self = .hidden
+        case (true, false): self = .unfocused
+        case (true, true): self = .focused
+        }
+    }
+}
+
 final class PanelController {
     private let panel: FloatingPanel
     private let model: LauncherModel
@@ -61,8 +77,17 @@ final class PanelController {
         )
     }
 
-    func toggle() {
-        if panel.isVisible { hide(.cancelled) } else { show() }
+    /// What the hotkey and the menu bar's Show Borma do.
+    func summon() {
+        switch PanelPresence(isVisible: panel.isVisible, isKey: panel.isKeyWindow) {
+        case .hidden:
+            show()
+        case .unfocused:
+            rememberAppBeneath()
+            takeFocus()
+        case .focused:
+            hide(.cancelled)
+        }
     }
 
     func hide(_ dismissal: PanelDismissal) {
@@ -80,9 +105,13 @@ final class PanelController {
         model.reset()
         resize()
         position()
+        takeFocus()
+        observeResults()
+    }
+
+    private func takeFocus() {
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
-        observeResults()
     }
 
     /// Called before Borma activates. With Borma already frontmost there's
@@ -163,8 +192,7 @@ final class PanelController {
         settingsWindow = nil
 
         if panel.isVisible {
-            NSApp.activate(ignoringOtherApps: true)
-            panel.makeKeyAndOrderFront(nil)
+            takeFocus()
         }
     }
 

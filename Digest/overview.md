@@ -57,7 +57,7 @@ AppDelegate
 └── FileWatcher (×2)  — FSEvents wrappers for the config file's directory and the configured app directories.
 
 BormaApp scenes
-├── MenuBarExtra      — status item with Show / Settings / Quit. "Show Borma" calls toggle(), so it hides a visible panel.
+├── MenuBarExtra      — status item with Show / Settings / Quit. "Show Borma" calls summon(), the same as the hotkey.
 └── Settings          — SwiftUI Settings scene (hotkey recorder, launch-at-login toggle, always-show-hint, system-accent toggle + highlight color). Edits save through .onChange(of: config.config).
 
 AppScanner            — Walks `.app` bundles into [AppRecord]. See search.md.
@@ -74,13 +74,13 @@ AppInfo               — Bundle identity (`bundleID`), read from the bundle at 
 
 **Reopen.** Launching the already-running app calls `applicationShouldHandleReopen`, which calls `PanelController.show()`.
 
-**Hotkey pressed.** `HotkeyController` invokes its `onTrigger` callback. `PanelController.toggle()` orders the panel front and makes it key (or hides it if it was already visible). The menu bar's "Show Borma" calls the same `toggle()`.
+**Hotkey pressed.** `HotkeyController` invokes its `onTrigger` callback, whichever app has focus. `PanelController.summon()` opens a hidden panel, gives focus to a panel that's on screen without it (keeping the query), and hides a focused one. The menu bar's "Show Borma" calls the same `summon()`.
 
 **User types.** SwiftUI publishes the query to `LauncherModel`, and editing it clears `selection`, returning the highlight to the top result. `results` is a computed property, empty for an empty query: score each `AppRecord`'s display name and file name via `Matcher.score(...)` and keep the better one (apps matching neither drop out), floor that at 1, multiply by `FrecencyStore.multiplier(...)`, sort by score (then name length, then alphabetical), take top 8 (`LauncherModel.maxResults`).
 
 **Return.** Return or a row click calls `LauncherModel.launchSelection()`, which invokes `onLaunch`. `AppDelegate` wires that to `FrecencyStore.record(query:bundleId:)` + `AppLauncher.launch(...)`. Then `onDismissRequested` fires → `PanelController.hide(_:)`. With no result to launch, only the dismiss fires.
 
-**Dismiss (Esc, Return or row click, or hotkey / "Show Borma" while visible).** `PanelController.hide(_:)` orders the panel out and calls `model.reset()`. The first `hide(_:)` while `WelcomeFlag.isActive` retires the flag, persists it, and clears `model.welcomeActive`. A dismiss that launched nothing hands focus back to the app the panel opened over. Click-away does not dismiss — see `panel.md`.
+**Dismiss (Esc, Return or row click, or hotkey / "Show Borma" while focused).** `PanelController.hide(_:)` orders the panel out and calls `model.reset()`. The first `hide(_:)` while `WelcomeFlag.isActive` retires the flag, persists it, and clears `model.welcomeActive`. A dismiss that launched nothing hands focus back to the app the panel opened over. Click-away does not dismiss — see `panel.md`.
 
 **Config or app dir changes.** The corresponding `FileWatcher` yields a `Void` on its `events` `AsyncStream`. The config watcher covers the whole App Support directory (see `concurrency.md`), so frecency saves and `ConfigStore`'s own writes fire it too; the consumer reloads the config and only rescans + re-attaches the app watcher when the reloaded `Config` differs (`Config` is `Equatable`). Settings edits update the in-memory `Config` before saving, so they reload equal. That includes colors, because `HexColor` holds the same 8 bits per channel in memory as `#RRGGBB` does on disk. App-dir events always trigger a rescan; `model.apps` is replaced with the new list.
 

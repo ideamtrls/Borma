@@ -12,7 +12,7 @@ The global hotkey, the two-name pattern, and the Spotlight ⌘Space conflict and
 ## Where things live
 
 - Binding state, controller, names, fallback constant, Spotlight check: `Sources/Hotkey/Hotkey.swift`, `HotkeyBinding`, `HotkeyController`, `evaluateBinding()`, `fallbackShortcut`, `.toggleBorma`, `.toggleBormaFallback`, `recheckConflict()`, `frontmostAppDidChange(to:)`, private `SpotlightConflict.isSpotlightOnCmdSpace()`
-- Controller construction, `onTrigger` → `panel?.toggle()`, `onBindingChanged` → model, plus `panel?.showIfHidden()` on a new conflict: `Sources/App/AppDelegate.swift`, `applicationDidFinishLaunching(_:)`
+- Controller construction, `onTrigger` → `panel?.summon()`, `onBindingChanged` → model, plus `panel?.showIfHidden()` on a new conflict: `Sources/App/AppDelegate.swift`, `applicationDidFinishLaunching(_:)`
 - Recorder → re-evaluation: `Sources/App/BormaApp.swift`, `SettingsView` (`KeyboardShortcuts.Recorder`, `onShortcutChange`), calling `AppDelegate.refreshHotkeyBinding()`
 - UI-facing state: `Sources/Search/LauncherModel.swift`, `hotkeyBinding`
 - Bib text: `Sources/Panel/SearchView.swift`, `footerHintLine`, `formatShortcut(_:)`
@@ -96,7 +96,7 @@ Steps:
 
 Step 4's shape matters because `.toggleBorma` can hold the same `⌘⇧Space` as the fallback (it's the default):
 
-- The fallback must be cleared, not just disabled. Dispatch is by value, so a fallback left holding `⌘⇧Space` would fire `onTrigger` alongside `.toggleBorma`, and the two `PanelController.toggle()` calls cancel out.
+- The fallback must be cleared, not just disabled. Dispatch is by value, so a fallback left holding `⌘⇧Space` would fire `onTrigger` alongside `.toggleBorma`, and the two `PanelController.summon()` calls cancel out.
 - `.toggleBorma` must be enabled last. `disable` and `setShortcut(nil, for:)` unregister by value, which would otherwise drop the primary's hot key.
 
 ## Spotlight detection

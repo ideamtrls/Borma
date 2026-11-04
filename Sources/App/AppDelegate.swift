@@ -35,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.onDismissRequested = { [weak panel] dismissal in panel?.hide(dismissal) }
 
         hotkey = HotkeyController(
-            onTrigger: { [weak panel] in panel?.toggle() },
+            onTrigger: { [weak panel] in panel?.summon() },
             onBindingChanged: { [weak self, weak panel] binding, previous in
                 self?.model.hotkeyBinding = binding
                 // The usual hotkey just stopped working, so open the panel to

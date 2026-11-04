@@ -41,11 +41,11 @@ The SwiftUI root view is hosted via `NSHostingView(rootView: SearchView(...))`, 
 
 ## Showing
 
-`show()` runs `rememberAppBeneath()`, `model.reset()`, `resize()`, `position()`, `NSApp.activate(ignoringOtherApps: true)`, `panel.makeKeyAndOrderFront(nil)`, and `observeResults()`, in that order. `position()` reads the height `resize()` just set. The activation is explicit because `.nonactivatingPanel` doesn't activate the app on its own.
+`show()` runs `rememberAppBeneath()`, `model.reset()`, `resize()`, `position()`, `takeFocus()` (`NSApp.activate(ignoringOtherApps: true)` then `panel.makeKeyAndOrderFront(nil)`), and `observeResults()`, in that order. `position()` reads the height `resize()` just set. The activation is explicit because `.nonactivatingPanel` doesn't activate the app on its own.
 
 Callers:
 
-- **Hotkey** and the menu bar **Show Borma** item call `toggle()`, which shows a hidden panel and hides a visible one.
+- **Hotkey** and the menu bar **Show Borma** item call `summon()`, which switches on `PanelPresence`. `.hidden` calls `show()`. `.unfocused` (on screen, but not the key window) calls `rememberAppBeneath()` and `takeFocus()`, keeping the query and position. `.focused` calls `hide(.cancelled)`. The hotkey is registered system-wide, so it reaches Borma whichever app has focus.
 - **App launch** calls `showIfHidden()` from `applicationDidFinishLaunching(_:)` while `welcome.isActive`.
 - **New hotkey conflict** calls `showIfHidden()` from `AppDelegate`'s `onBindingChanged` closure, so the user sees the hotkey that replaced theirs. `showIfHidden()` does nothing if the panel is already up, since `show()` clears the query. A conflict carried over from the last run doesn't count as new (`hotkey.md`).
 - **App reopen** calls `show()` from `applicationShouldHandleReopen(_:hasVisibleWindows:)`, even if the panel is already visible, which clears the query and re-centers it.
@@ -103,17 +103,17 @@ The final force-unwrap crashes on zero attached displays. Rare edge case (clamsh
 `hide(_:)` runs `panel.orderOut(nil)`, `model.reset()`, the welcome retire step, and `returnFocus(after:)`. Its `PanelDismissal` argument decides where focus goes:
 
 - `.launching` — the launched app takes focus itself.
-- `.cancelled` — `appBeneath` is activated. `rememberAppBeneath()` records it in `show()`, before Borma activates, and it stays `nil` when the panel opened over Borma itself. Nothing is activated if Borma is no longer active, because the user has already moved to another app, or if `settingsWindow` is set, because Settings keeps focus.
+- `.cancelled` — `appBeneath` is activated. `rememberAppBeneath()` records it each time the panel takes focus through `show()` or `summon()`, before Borma activates, and it stays `nil` when the panel opened over Borma itself. Nothing is activated if Borma is no longer active, because the user has already moved to another app, or if `settingsWindow` is set, because Settings keeps focus.
 
 Triggers:
 
 - **Esc** — `.onKeyPress(.escape)` on the `TextField` calls `model.onDismissRequested` with `.cancelled`, which `AppDelegate` wires to `panel.hide(_:)`.
 - **Return** — `.onSubmit` calls `LauncherModel.launchSelection()`. If `selectedApp(in:)` finds an app, it invokes `onLaunch` then `onDismissRequested` with `.launching`; otherwise (empty query, no matches) it invokes only `onDismissRequested`, with `.cancelled`. The launch outcome isn't checked: `AppLauncher.launch` is asynchronous and a failure logs and beeps after the panel is gone.
 - **Click on a result row** — `.onTapGesture` sets `model.selection` and calls `launchSelection()`.
-- **Hotkey re-pressed** — `HotkeyController` runs its `onTrigger` closure, which `AppDelegate` wires to `panel.toggle()`; `toggle()` calls `hide(_:)` if visible.
-- **Show Borma menu item** — also `toggle()`, so it hides a visible panel.
+- **Hotkey re-pressed while focused** — `HotkeyController` runs its `onTrigger` closure, which `AppDelegate` wires to `panel.summon()`; `summon()` calls `hide(.cancelled)` when the panel is `.focused`.
+- **Show Borma menu item** — also `summon()`, so it hides a focused panel.
 
-**Click-away does *not* dismiss the panel.** `hidesOnDeactivate = false` is set deliberately, and `panelResignedKey(_:)` doesn't call `hide(_:)`. The panel stays on screen at `.statusBar` level, above normal windows but not key, until one of the triggers above fires. Keystrokes go to the new key window, so Esc and Return don't reach it. `toggle()` checks only `panel.isVisible`, so the hotkey hides a panel that has lost key rather than refocusing it.
+**Click-away does *not* dismiss the panel.** `hidesOnDeactivate = false` is set deliberately, and `panelResignedKey(_:)` doesn't call `hide(_:)`. The panel stays on screen at `.statusBar` level, above normal windows but not key, until one of the triggers above fires. Keystrokes go to the new key window, so Esc and Return don't reach it. The hotkey gives it focus back with the query intact, and cancelling then returns focus to the app that was frontmost when the hotkey was pressed.
 
 ## Settings adoption
 

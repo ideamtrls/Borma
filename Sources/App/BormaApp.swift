@@ -9,7 +9,7 @@ struct BormaApp: App {
 
     var body: some Scene {
         MenuBarExtra("Borma", image: "MenuBarIcon") {
-            Button("Show Borma") { delegate.panel?.toggle() }
+            Button("Show Borma") { delegate.panel?.summon() }
             Button("Settings…") { openSettings() }
                 .keyboardShortcut(",", modifiers: .command)
             Divider()
