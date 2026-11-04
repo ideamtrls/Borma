@@ -27,6 +27,10 @@ final class LauncherModel {
     var welcomeActive: Bool = true
     /// The hotkey in effect. `nil` until `HotkeyController` first evaluates it.
     var hotkeyBinding: HotkeyBinding?
+    /// The latest ask to put the cursor in the search field. `SearchView` owns
+    /// the focus state, so this is how `PanelController` reaches it. Each
+    /// request is a new value, so SwiftUI always sees a change.
+    private(set) var fieldFocusRequest = UUID()
 
     @ObservationIgnored var onLaunch: ((AppRecord, String) -> Void)?
     @ObservationIgnored var onDismissRequested: ((PanelDismissal) -> Void)?
@@ -73,6 +77,10 @@ final class LauncherModel {
     /// otherwise the top result.
     func selectedApp(in results: [AppRecord]) -> AppRecord? {
         results.first { $0.id == selection } ?? results.first
+    }
+
+    func requestFieldFocus() {
+        fieldFocusRequest = UUID()
     }
 
     func reset() {

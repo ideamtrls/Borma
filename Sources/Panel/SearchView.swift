@@ -115,6 +115,7 @@ struct SearchView: View {
         }
         .clipShape(surface)
         .onAppear { isFieldFocused = true }
+        .onChange(of: model.fieldFocusRequest) { isFieldFocused = true }
     }
 
     private var inputContent: some View {

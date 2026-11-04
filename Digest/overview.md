@@ -74,7 +74,7 @@ AppInfo               — Bundle identity (`bundleID`), read from the bundle at 
 
 **Reopen.** Launching the already-running app calls `applicationShouldHandleReopen`, which calls `PanelController.show()`.
 
-**Hotkey pressed.** `HotkeyController` invokes its `onTrigger` callback, whichever app has focus. `PanelController.summon()` opens a hidden panel, gives focus to a panel that's on screen without it (keeping the query), and does nothing to a focused one. The menu bar's "Show Borma" calls the same `summon()`.
+**Hotkey pressed.** `HotkeyController` invokes its `onTrigger` callback, whichever app has focus. `PanelController.summon()` opens a hidden panel, or gives focus to a visible one and keeps its query. Either way the cursor ends up in the search field. The menu bar's "Show Borma" calls the same `summon()`.
 
 **User types.** SwiftUI publishes the query to `LauncherModel`, and editing it clears `selection`, returning the highlight to the top result. `results` is a computed property, empty for an empty query: score each `AppRecord`'s display name and file name via `Matcher.score(...)` and keep the better one (apps matching neither drop out), floor that at 1, multiply by `FrecencyStore.multiplier(...)`, sort by score (then name length, then alphabetical), take top 8 (`LauncherModel.maxResults`).
 

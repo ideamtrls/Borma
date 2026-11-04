@@ -6,22 +6,6 @@ private final class FloatingPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
-/// Where the panel stands from the hotkey's point of view.
-enum PanelPresence: Equatable {
-    case hidden
-    /// On screen, but another window has keyboard focus.
-    case unfocused
-    case focused
-
-    init(isVisible: Bool, isKey: Bool) {
-        switch (isVisible, isKey) {
-        case (false, _): self = .hidden
-        case (true, false): self = .unfocused
-        case (true, true): self = .focused
-        }
-    }
-}
-
 final class PanelController {
     private let panel: FloatingPanel
     private let model: LauncherModel
@@ -77,17 +61,15 @@ final class PanelController {
         )
     }
 
-    /// What the hotkey and the menu bar's Show Borma do: put the user in the
-    /// search field. They never close the panel; Esc does that.
+    /// What the hotkey and the menu bar's Show Borma do: whatever state the
+    /// panel is in, the cursor ends up in the search field. They never close
+    /// the panel; Esc does that.
     func summon() {
-        switch PanelPresence(isVisible: panel.isVisible, isKey: panel.isKeyWindow) {
-        case .hidden:
-            show()
-        case .unfocused:
+        if panel.isVisible {
             rememberAppBeneath()
             takeFocus()
-        case .focused:
-            break
+        } else {
+            show()
         }
     }
 
@@ -113,6 +95,7 @@ final class PanelController {
     private func takeFocus() {
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
+        model.requestFieldFocus()
     }
 
     /// Called before Borma activates. With Borma already frontmost there's

@@ -41,11 +41,11 @@ The SwiftUI root view is hosted via `NSHostingView(rootView: SearchView(...))`, 
 
 ## Showing
 
-`show()` runs `rememberAppBeneath()`, `model.reset()`, `resize()`, `position()`, `takeFocus()` (`NSApp.activate(ignoringOtherApps: true)` then `panel.makeKeyAndOrderFront(nil)`), and `observeResults()`, in that order. `position()` reads the height `resize()` just set. The activation is explicit because `.nonactivatingPanel` doesn't activate the app on its own.
+`show()` runs `rememberAppBeneath()`, `model.reset()`, `resize()`, `position()`, `takeFocus()` (`NSApp.activate(ignoringOtherApps: true)`, `panel.makeKeyAndOrderFront(nil)`, then `model.requestFieldFocus()`), and `observeResults()`, in that order. `position()` reads the height `resize()` just set. The activation is explicit because `.nonactivatingPanel` doesn't activate the app on its own.
 
 Callers:
 
-- **Hotkey** and the menu bar **Show Borma** item call `summon()`, which switches on `PanelPresence`. `.hidden` calls `show()`. `.unfocused` (on screen, but not the key window) calls `rememberAppBeneath()` and `takeFocus()`, keeping the query and position. `.focused` does nothing, so neither ever closes the panel. The hotkey is registered system-wide, so it reaches Borma whichever app has focus.
+- **Hotkey** and the menu bar **Show Borma** item call `summon()`. A hidden panel gets `show()`. A visible one gets `rememberAppBeneath()` and `takeFocus()`, keeping the query and position. Whatever state the panel was in, the cursor ends up in the search field, and neither ever closes the panel. The hotkey is registered system-wide, so it reaches Borma whichever app has focus.
 - **App launch** calls `showIfHidden()` from `applicationDidFinishLaunching(_:)` while `welcome.isActive`.
 - **New hotkey conflict** calls `showIfHidden()` from `AppDelegate`'s `onBindingChanged` closure, so the user sees the hotkey that replaced theirs. `showIfHidden()` does nothing if the panel is already up, since `show()` clears the query. A conflict carried over from the last run doesn't count as new (`hotkey.md`).
 - **App reopen** calls `show()` from `applicationShouldHandleReopen(_:hasVisibleWindows:)`, even if the panel is already visible, which clears the query and re-centers it.
@@ -80,7 +80,7 @@ On any change, the panel resizes without animation (anchored at the top — the 
 
 `LauncherSurface` draws a plain rounded rectangle (`cornerRadius`, 12pt) unless `hasBib` is true. Then it draws the input rectangle and a narrower bib joined by two concave fillets (`notchRadius`, 8pt). It falls back to the rounded rectangle when `inputHeight` isn't smaller than the rect's height.
 
-Key handling sits on the `TextField`: `.onSubmit` calls `launchSelection()`, `.onKeyPress(.escape)` dismisses, and `.onKeyPress(.upArrow)` / `.downArrow` call `selectPrev()` / `selectNext()`. `.onAppear` sets `isFieldFocused = true`.
+Key handling sits on the `TextField`: `.onSubmit` calls `launchSelection()`, `.onKeyPress(.escape)` dismisses, and `.onKeyPress(.upArrow)` / `.downArrow` call `selectPrev()` / `selectNext()`. `.onAppear` sets `isFieldFocused = true`, and so does any change to `model.fieldFocusRequest`, which is how `takeFocus()` reaches the view's `@FocusState`. Esc is handled by the field, so it needs the cursor to be there.
 
 `ResultRow` shows the icon (`resultIconSize`, 44pt) and `displayName` at `rowHeight`, with the selected row tinted by `config.highlightColor` at 22% opacity.
 
