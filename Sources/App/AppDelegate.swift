@@ -87,7 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // Only rescan and re-attach the app watcher when the config
                 // actually changed.
                 let previous = self.config.config
-                self.config.load()
+                await self.config.reload()
                 guard self.config.config != previous else { continue }
                 await self.rescan()
                 self.startAppWatcher()

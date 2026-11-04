@@ -22,7 +22,7 @@ The repo aims for a small surface area: ~1,400 lines of Swift, one external depe
 - Log categories: `Sources/App/Logging.swift`, `Log`
 - First-run flag: `Sources/App/WelcomeFlag.swift`, `WelcomeFlag`
 - Config schema and defaults: `Sources/Config/Config.swift`, `Config`, `Config.default`, `HexColor`
-- Config load, save, broken-file handling: `Sources/Config/ConfigStore.swift`, `ConfigStore.load()`, `ConfigStore.save()`, `preserveBrokenFile()`
+- Config load, reload, save, broken-file handling: `Sources/Config/ConfigStore.swift`, `ConfigStore.load()`, `ConfigStore.reload()`, `ConfigStore.save()`, `preserveBrokenFile()`
 - FSEvents wrapper: `Sources/Config/FileWatcher.swift`, `FileWatcher`
 - Panel and its view: `Sources/Panel/Panel.swift`, `PanelController`; `Sources/Panel/SearchView.swift`, `SearchView`
 - Hotkey and Spotlight check: `Sources/Hotkey/Hotkey.swift`, `HotkeyController`, `SpotlightConflict`
@@ -91,7 +91,8 @@ AppInfo               — Bundle identity (`bundleID`), read from the bundle at 
   config.json     — user-editable. searchPaths, highlightColor, alwaysShowHint.
                     Codable; version is written as 1 and nothing reads it. If it
                     fails to decode (bad hand edit), it's moved aside to
-                    config.json.errors and a fresh default is written.
+                    config.json.errors and the config in memory is written:
+                    defaults at startup, the last good values after that.
   frecency.json   — machine-written launch history, absent until the first recorded
                     launch. Schema, migration, pruning, and failure handling: search.md.
 ```
@@ -122,10 +123,11 @@ When adding a new persisted store, follow the same contract: `Codable` with an e
 
 **`searchPaths` entries are used literally.** They reach `URL(fileURLWithPath:)` and `FileWatcher` unmodified, so `~` isn't expanded. The sandbox also limits which roots can work; see `build.md` ("App sandbox at runtime").
 
-**`ConfigStore.load()` outcomes.**
-- Missing file: writes the in-memory config, which is the defaults at startup and the last-loaded values if the file is deleted while running.
-- `DecodingError`, including JSON syntax errors: `preserveBrokenFile()` moves the file to `config.json.errors` (replacing any earlier one), then `Config.default` is applied and saved.
-- Any other read error: logged, with the in-memory config and the file left alone.
+**Reading the config.** `load()` runs once at startup and acts on the file as it is. `reload()` runs on every config-watcher event; a malformed read may be an editor's half-finished save, so it reads again after `partialWriteGrace` (500 ms) before acting. Both go through the private `ReadResult` enum:
+- `.missing`: writes the in-memory config, which is the defaults at startup and the last-loaded values if the file is deleted while running.
+- `.loaded`: replaces the in-memory config.
+- `.malformed`, any `DecodingError` including JSON syntax errors: `preserveBrokenFile()` moves the file to `config.json.errors` (replacing any earlier one), then the in-memory config is saved, which is the defaults at startup and the last good values while running. If the move throws, the error is logged and the file is left in place.
+- `.unreadable`, any other read error: logged, with the in-memory config and the file left alone.
 
 ## Logging
 
