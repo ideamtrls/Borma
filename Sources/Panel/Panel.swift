@@ -205,7 +205,11 @@ final class PanelController {
         let width = LauncherDimensions.panelWidth
         let height = panel.frame.height
         let x = frame.midX - width / 2
-        let y = frame.maxY - (frame.height / 3) - height / 2
+        let y = LauncherDimensions.openingY(
+            height: height,
+            fullHeight: LauncherDimensions.inputSectionHeight(resultCount: LauncherModel.maxResults),
+            in: frame
+        )
         panel.setFrame(NSRect(x: x, y: y, width: width, height: height), display: false)
     }
 
@@ -219,6 +223,9 @@ final class PanelController {
         frame.origin.y -= newHeight - frame.height
         frame.size.height = newHeight
         frame.size.width = width
+        if let visible = panel.screen?.visibleFrame {
+            frame.origin.y = LauncherDimensions.clampedY(frame.origin.y, height: newHeight, in: visible)
+        }
         panel.setFrame(frame, display: true, animate: false)
     }
 }

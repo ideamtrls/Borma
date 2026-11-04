@@ -16,7 +16,7 @@ The floating search panel and everything rendered inside it: NSPanel configurati
 - Root view, key handling, bib rendering, hotkey text: `Sources/Panel/SearchView.swift`, `SearchView`, `formatShortcut(_:)`
 - Panel silhouette: `Sources/Panel/SearchView.swift`, `LauncherSurface`
 - Result rows: `Sources/Panel/SearchView.swift`, `ResultRow`
-- Size constants and height formula: `Sources/Panel/LayoutMetrics.swift`, `LauncherDimensions`, `inputSectionHeight(resultCount:)`
+- Size constants, height formula, on-screen placement: `Sources/Panel/LayoutMetrics.swift`, `LauncherDimensions`, `inputSectionHeight(resultCount:)`, `openingY(height:fullHeight:in:)`, `clampedY(_:height:in:)`
 - Welcome flag storage: `Sources/App/WelcomeFlag.swift`, `WelcomeFlag`
 - Panel state and launch/dismiss logic: `Sources/Search/LauncherModel.swift`, `LauncherModel`, `launchSelection()`
 - Callback wiring, show at launch and on reopen: `Sources/App/AppDelegate.swift`, `AppDelegate`
@@ -68,7 +68,7 @@ Width is fixed at `panelWidth` (640pt). Height is computed via `LauncherDimensio
 - `model.hotkeyBinding` — `HotkeyController`'s re-checks can change it while the panel is open, which changes whether the bib shows.
 - `config.config.alwaysShowHint` — registers the whole `config` property, so any change to it, from Settings or a config reload, fires.
 
-On any change, the panel resizes without animation (anchored at the top — the search field stays in place, additional results extend downward) and re-installs the tracking. `onChange` fires once per arming, before the new value lands, so the closure defers to a main-actor `Task` (`concurrency.md` has the hop), returns if the panel isn't visible, and otherwise calls `resize()` and `observeResults()`.
+On any change, the panel resizes without animation (anchored at the top — the search field stays in place, additional results extend downward — unless `clampedY` has to bring the panel back on screen) and re-installs the tracking. `onChange` fires once per arming, before the new value lands, so the closure defers to a main-actor `Task` (`concurrency.md` has the hop), returns if the panel isn't visible, and otherwise calls `resize()` and `observeResults()`.
 
 `show()` arms a tracking unconditionally. A `hide(_:)` that changes nothing tracked (the query was already empty) leaves the earlier tracking armed alongside the new one. Each extra adds one redundant `resize()` per change, and all of them clear on the next hide with a typed query, because the closures then return without re-arming.
 
@@ -88,7 +88,7 @@ Key handling sits on the `TextField`: `.onSubmit` calls `launchSelection()`, `.o
 
 ## Positioning
 
-`PanelController.position()` picks the screen containing the mouse cursor and places the panel centered horizontally, vertically positioned with its center one-third from the top of the visible frame.
+`PanelController.position()` picks the screen containing the mouse cursor and places the panel centered horizontally, vertically positioned with its center one-third from the top of the visible frame (`LauncherDimensions.openingY`). On a short screen it sits higher, so a full result list fits below the search field without the field moving as results appear. `resize()` also applies `clampedY`, which brings a panel dragged near an edge back onto its screen. A panel too tall for the screen stays aligned to the top, keeping the search field reachable.
 
 ```swift
 NSScreen.screens.first(where: mouse-in-frame)

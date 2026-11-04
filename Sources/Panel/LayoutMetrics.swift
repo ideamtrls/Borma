@@ -23,4 +23,20 @@ nonisolated enum LauncherDimensions {
         }
         return h
     }
+
+    /// The bottom edge for a panel opening on a screen: its center one-third
+    /// from the top, moved up if needed so a full result list fits below the
+    /// search field. Reserving the room up front keeps the field from jumping
+    /// as results appear.
+    static func openingY(height: CGFloat, fullHeight: CGFloat, in visible: CGRect) -> CGFloat {
+        let preferred = visible.maxY - visible.height / 3 - height / 2
+        let roomForFullList = visible.minY + fullHeight - height
+        return clampedY(max(preferred, roomForFullList), height: height, in: visible)
+    }
+
+    /// Keeps a panel of `height` on screen. One too tall to fit stays aligned
+    /// to the top, which keeps the search field reachable.
+    static func clampedY(_ y: CGFloat, height: CGFloat, in visible: CGRect) -> CGFloat {
+        min(max(y, visible.minY), visible.maxY - height)
+    }
 }
