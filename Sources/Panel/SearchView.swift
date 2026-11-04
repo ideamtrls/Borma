@@ -5,8 +5,10 @@ import SwiftUI
 /// The launcher's outer silhouette. When `hasBib` is false this is a plain
 /// rounded rectangle; otherwise it draws the input rectangle and a narrower
 /// rounded bib hanging off the bottom, joined by two concave fillets so the
-/// whole thing reads as a single continuous surface.
-private struct LauncherSurface: Shape {
+/// whole thing reads as a single continuous surface. Marked `nonisolated`
+/// because `Shape` is a `Sendable` protocol whose `path(in:)` requirement is
+/// nonisolated; SwiftUI calls it off the main actor.
+private nonisolated struct LauncherSurface: Shape {
     var inputHeight: CGFloat
     var bibWidth: CGFloat
     var hasBib: Bool
