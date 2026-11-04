@@ -10,8 +10,13 @@ struct BormaApp: App {
     var body: some Scene {
         MenuBarExtra("Borma", image: "MenuBarIcon") {
             Button("Show Borma") { delegate.panel?.summon() }
-            Button("Settings…") { openSettings() }
-                .keyboardShortcut(",", modifiers: .command)
+            Button("Settings…") {
+                // A menu click doesn't activate an accessory app, so without
+                // this the window can open behind the frontmost app.
+                NSApp.activate(ignoringOtherApps: true)
+                openSettings()
+            }
+            .keyboardShortcut(",", modifiers: .command)
             Divider()
             Button("Quit Borma") { NSApp.terminate(nil) }
                 .keyboardShortcut("q", modifiers: .command)
