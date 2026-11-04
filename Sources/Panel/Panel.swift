@@ -79,12 +79,18 @@ final class PanelController {
         observeResults()
     }
 
+    /// For callers with no user gesture behind them: opening clears the query,
+    /// so a panel that's already up keeps what's being typed.
+    func showIfHidden() {
+        if !panel.isVisible { show() }
+    }
+
     private func observeResults() {
         withObservationTracking {
             _ = model.results.count
             _ = model.query.isEmpty
             _ = model.welcomeActive
-            _ = model.conflictActive
+            _ = model.hotkeyBinding
             _ = config.config.alwaysShowHint
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
@@ -148,7 +154,7 @@ final class PanelController {
 
     private func resize() {
         let width = LauncherDimensions.panelWidth
-        let showHint = (model.welcomeActive || model.conflictActive || config.config.alwaysShowHint) && model.query.isEmpty
+        let showHint = (model.welcomeActive || model.hotkeyBinding == .fallback || config.config.alwaysShowHint) && model.query.isEmpty
         let inputHeight = LauncherDimensions.inputSectionHeight(resultCount: model.results.count)
         let newHeight = inputHeight + (showHint ? LauncherDimensions.bibHeight : 0)
 

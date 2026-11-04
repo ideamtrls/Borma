@@ -102,7 +102,7 @@ Matching is one-way. Stored "saf" can boost typed "s" and "sa", but typed "safa"
 - `apps: [AppRecord]` — current scan result
 - `query: String` — text the user is typing; any edit clears `selection`, returning the highlight to the top result
 - `selection: AppRecord.ID?` — the row the user moved to, held by identity so a rescan can't slide it onto another app. `nil` means the top result. `selectedApp(in:)` resolves it against `results` and falls back to the top result if that app has gone. `selectNext` and `selectPrev` stop at the first and last rows with no wrap; a row tap in `SearchView` assigns it directly
-- `conflictActive`, `activeHotkey` — UX flags pushed by `AppDelegate` from `HotkeyController`'s `onBindingChanged`
+- `hotkeyBinding: HotkeyBinding?` — the hotkey in effect, pushed by `AppDelegate` from `HotkeyController`'s `onBindingChanged`; `nil` until the first evaluation
 - `welcomeActive` — UX flag pushed by `PanelController` from `WelcomeFlag`
 - `onLaunch`, `onDismissRequested` — callbacks (`@ObservationIgnored`)
 

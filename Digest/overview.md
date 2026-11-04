@@ -50,7 +50,7 @@ Sources/
 AppDelegate
 ├── ConfigStore       — Observable. Loads/persists config.json.
 ├── FrecencyStore     — Loads/persists frecency.json. Per-(bundleId, query) launch history.
-├── LauncherModel     — Observable. UI-facing state: apps, query, selection, welcome and conflict flags, active hotkey; computes results.
+├── LauncherModel     — Observable. UI-facing state: apps, query, selection, welcome flag, hotkey binding; computes results.
 ├── PanelController   — Owns the floating NSPanel; hosts the SwiftUI SearchView via NSHostingView.
 ├── HotkeyController  — Registers the global hotkey; detects a ⌘Space conflict and falls back.
 ├── WelcomeFlag       — UserDefaults flag for the one-time hotkey-hint footer.
@@ -68,7 +68,7 @@ AppInfo               — Bundle identity (`bundleID`), read from the bundle at 
 
 ## Data flow
 
-**Startup.** `AppDelegate` instantiates `ConfigStore` and `FrecencyStore`, each of which loads its JSON synchronously; `appSupportDir()` creates the data directory if needed. On `applicationDidFinishLaunching`, the `PanelController` and `HotkeyController` are constructed, an initial scan is dispatched in the background, and two `FileWatcher`s attach: one to the config file's directory, one to the configured app directories (none when `searchPaths` is empty). The panel is shown immediately if the welcome flag is still active (the user has never dismissed the panel) or the hotkey is taken.
+**Startup.** `AppDelegate` instantiates `ConfigStore` and `FrecencyStore`, each of which loads its JSON synchronously; `appSupportDir()` creates the data directory if needed. On `applicationDidFinishLaunching`, the `PanelController` and `HotkeyController` are constructed, an initial scan is dispatched in the background, and two `FileWatcher`s attach: one to the config file's directory, one to the configured app directories (none when `searchPaths` is empty). The panel is shown immediately if the welcome flag is still active (the user has never dismissed the panel) or the hotkey was taken since the last run.
 
 **Hotkey taken.** `HotkeyController` re-checks on every app switch. A new conflict moves Borma to the fallback hotkey and opens the panel, whose bib shows it. See `hotkey.md`.
 

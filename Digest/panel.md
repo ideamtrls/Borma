@@ -46,8 +46,8 @@ The SwiftUI root view is hosted via `NSHostingView(rootView: SearchView(...))`, 
 Callers:
 
 - **Hotkey** and the menu bar **Show Borma** item call `toggle()`, which shows a hidden panel and hides a visible one.
-- **App launch** calls `show()` from `applicationDidFinishLaunching(_:)` while `welcome.isActive`.
-- **New hotkey conflict** calls `show()` from `AppDelegate`'s `onBindingChanged` closure, at launch or while running, so the user sees the hotkey that replaced theirs.
+- **App launch** calls `showIfHidden()` from `applicationDidFinishLaunching(_:)` while `welcome.isActive`.
+- **New hotkey conflict** calls `showIfHidden()` from `AppDelegate`'s `onBindingChanged` closure, so the user sees the hotkey that replaced theirs. `showIfHidden()` does nothing if the panel is already up, since `show()` clears the query. A conflict carried over from the last run doesn't count as new (`hotkey.md`).
 - **App reopen** calls `show()` from `applicationShouldHandleReopen(_:hasVisibleWindows:)`, even if the panel is already visible, which clears the query and re-centers it.
 
 ## Sizing and live resize
@@ -65,7 +65,7 @@ Width is fixed at `panelWidth` (640pt). Height is computed via `LauncherDimensio
 - `model.results.count` — `results` is computed, so this registers `query`, plus `apps` when the query is non-empty. A background rescan can resize an open panel.
 - `model.query.isEmpty`
 - `model.welcomeActive` — written only in `PanelController.init` and in `hide()` after `orderOut`, so it never resizes a visible panel.
-- `model.conflictActive` — `HotkeyController`'s re-checks can flip it while the panel is open, which changes whether the bib shows.
+- `model.hotkeyBinding` — `HotkeyController`'s re-checks can change it while the panel is open, which changes whether the bib shows.
 - `config.config.alwaysShowHint` — registers the whole `config` property, so any change to it, from Settings or a config reload, fires.
 
 On any change, the panel resizes without animation (anchored at the top — the search field stays in place, additional results extend downward) and re-installs the tracking. `onChange` fires once per arming, before the new value lands, so the closure defers to a main-actor `Task` (`concurrency.md` has the hop), returns if the panel isn't visible, and otherwise calls `resize()` and `observeResults()`.
@@ -133,7 +133,7 @@ The flag is set on `hide()`, not on app quit. While it is active the panel opens
 
 ## The bib
 
-The notch hanging off the bottom of the panel (`bibHeight = 38pt`, `bibWidth = 120pt`). Rendered while `(model.welcomeActive || model.conflictActive || config.config.alwaysShowHint) && model.query.isEmpty`. That expression exists twice, in `SearchView.shouldShowHint` and `PanelController.resize()`, and the two must match. `alwaysShowHint` is the Settings **Always show hotkey** toggle. Shows the current (active) hotkey — `formatShortcut(model.activeHotkey)`, nothing else. Keep it to that: during a conflict the panel carries no explanation or settings link, by design. Results and the bib never coexist, since `results` is empty for an empty query.
+The notch hanging off the bottom of the panel (`bibHeight = 38pt`, `bibWidth = 120pt`). Rendered while `(model.welcomeActive || model.hotkeyBinding == .fallback || config.config.alwaysShowHint) && model.query.isEmpty`. That expression exists twice, in `SearchView.shouldShowHint` and `PanelController.resize()`, and the two must match. `alwaysShowHint` is the Settings **Always show hotkey** toggle. Shows the current (active) hotkey — `formatShortcut(model.hotkeyBinding?.shortcut)`, nothing else. Keep it to that: during a conflict the panel carries no explanation or settings link, by design. Results and the bib never coexist, since `results` is empty for an empty query.
 
 `formatShortcut(_:)` joins `⌃ ⌥ ⇧ ⌘` and the key name with ` + `, shows Space as `␣`, and returns `—` for a nil shortcut. `KeyboardShortcuts` has no public key-glyph helper, so it recovers the key name by stripping modifier glyphs from `shortcut.description`.
 

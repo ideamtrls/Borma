@@ -8,6 +8,8 @@ import KeyboardShortcuts
 /// default and the fallback can't drift apart.
 private let fallbackShortcut = KeyboardShortcuts.Shortcut(.space, modifiers: [.command, .shift])
 
+private let cmdSpaceShortcut = KeyboardShortcuts.Shortcut(.space, modifiers: [.command])
+
 private let systemSettingsBundleID = "com.apple.systempreferences"
 
 extension KeyboardShortcuts.Name {
@@ -15,25 +17,61 @@ extension KeyboardShortcuts.Name {
     static let toggleBormaFallback = Self("toggleBormaFallback")
 }
 
-/// Owns the global hotkey wiring. Exposes whichever shortcut is currently
-/// *active* in `activeShortcut` — this may differ from the user's saved
-/// preference when Spotlight still owns ⌘Space.
+/// What opens Borma right now, which can differ from the user's saved shortcut.
+enum HotkeyBinding: Equatable {
+    /// The user cleared the recorder, so nothing is registered.
+    case unbound
+    /// The user's saved shortcut is live.
+    case saved(KeyboardShortcuts.Shortcut)
+    /// A system hotkey holds ⌘Space, so `fallbackShortcut` stands in for the
+    /// saved ⌘Space.
+    case fallback
+
+    var shortcut: KeyboardShortcuts.Shortcut? {
+        switch self {
+        case .unbound: nil
+        case .saved(let shortcut): shortcut
+        case .fallback: fallbackShortcut
+        }
+    }
+
+    /// `cmdSpaceTaken` is an autoclosure so that a shortcut other than ⌘Space
+    /// never asks Carbon.
+    static func resolve(
+        saved: KeyboardShortcuts.Shortcut?,
+        cmdSpaceTaken: @autoclosure () -> Bool
+    ) -> Self {
+        guard let saved else { return .unbound }
+        return saved == cmdSpaceShortcut && cmdSpaceTaken() ? .fallback : .saved(saved)
+    }
+
+    /// Whether arriving here from `previous` means the usual hotkey has only
+    /// now stopped working.
+    func isNewConflict(since previous: Self?) -> Bool {
+        self == .fallback && previous != .fallback
+    }
+}
+
+/// Owns the global hotkey wiring.
 ///
 /// Call `evaluateBinding()` whenever the user changes the shortcut in the
 /// settings recorder; the `Recorder`'s `onChange:` callback is the wiring
 /// point.
 final class HotkeyController {
-    private(set) var activeShortcut: KeyboardShortcuts.Shortcut?
-    private(set) var isOnFallback: Bool = false
+    /// The binding in effect. It starts from how the last run ended:
+    /// `.toggleBormaFallback` only has a stored shortcut while on the fallback,
+    /// so a conflict carried over from that run doesn't count as new.
+    private(set) var binding: HotkeyBinding?
 
-    private let onBindingChanged: (Bool, KeyboardShortcuts.Shortcut?) -> Void
+    private let onBindingChanged: (_ binding: HotkeyBinding, _ previous: HotkeyBinding?) -> Void
     private var settingsWatch: Task<Void, Never>?
 
     init(
         onTrigger: @escaping () -> Void,
-        onBindingChanged: @escaping (Bool, KeyboardShortcuts.Shortcut?) -> Void
+        onBindingChanged: @escaping (_ binding: HotkeyBinding, _ previous: HotkeyBinding?) -> Void
     ) {
         self.onBindingChanged = onBindingChanged
+        binding = KeyboardShortcuts.getShortcut(for: .toggleBormaFallback).map { _ in HotkeyBinding.fallback }
 
         KeyboardShortcuts.onKeyDown(for: .toggleBormaFallback, action: onTrigger)
         KeyboardShortcuts.onKeyDown(for: .toggleBorma, action: onTrigger)
@@ -43,32 +81,35 @@ final class HotkeyController {
     }
 
     func evaluateBinding() {
-        let saved = KeyboardShortcuts.getShortcut(for: .toggleBorma)
+        apply(resolvedBinding())
+    }
 
-        if conflictExists {
+    private func resolvedBinding() -> HotkeyBinding {
+        HotkeyBinding.resolve(
+            saved: KeyboardShortcuts.getShortcut(for: .toggleBorma),
+            cmdSpaceTaken: SpotlightConflict.isSpotlightOnCmdSpace()
+        )
+    }
+
+    private func apply(_ next: HotkeyBinding) {
+        switch next {
+        case .fallback:
             KeyboardShortcuts.disable(.toggleBorma)
             KeyboardShortcuts.setShortcut(fallbackShortcut, for: .toggleBormaFallback)
             KeyboardShortcuts.enable(.toggleBormaFallback)
-            activeShortcut = fallbackShortcut
-            isOnFallback = true
-        } else {
+        case .saved, .unbound:
             KeyboardShortcuts.disable(.toggleBormaFallback)
             KeyboardShortcuts.setShortcut(nil, for: .toggleBormaFallback)
             KeyboardShortcuts.enable(.toggleBorma)
-            activeShortcut = saved
-            isOnFallback = false
         }
 
-        onBindingChanged(isOnFallback, activeShortcut)
+        let previous = binding
+        binding = next
+        onBindingChanged(next, previous)
     }
 
     private var savedIsCmdSpace: Bool {
-        let saved = KeyboardShortcuts.getShortcut(for: .toggleBorma)
-        return saved?.key == .space && saved?.modifiers == [.command]
-    }
-
-    private var conflictExists: Bool {
-        savedIsCmdSpace && SpotlightConflict.isSpotlightOnCmdSpace()
+        KeyboardShortcuts.getShortcut(for: .toggleBorma) == cmdSpaceShortcut
     }
 
     /// macOS announces no change to its symbolic hotkeys, so the conflict is
@@ -106,12 +147,13 @@ final class HotkeyController {
         }
     }
 
-    /// Re-registers only when the answer changed. `evaluateBinding()` briefly
+    /// Re-registers only when the answer changed. `apply(_:)` briefly
     /// unregisters hot keys, so it mustn't run on every check.
     private func recheckConflict() {
-        guard conflictExists != isOnFallback else { return }
-        Log.hotkey.notice("⌘Space conflict changed; on fallback: \(!self.isOnFallback, privacy: .public)")
-        evaluateBinding()
+        let next = resolvedBinding()
+        guard next != binding else { return }
+        Log.hotkey.notice("Hotkey binding changed to \(String(describing: next), privacy: .public)")
+        apply(next)
     }
 }
 

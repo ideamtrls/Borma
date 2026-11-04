@@ -1,5 +1,4 @@
 import Foundation
-import KeyboardShortcuts
 import Observation
 
 /// Source of truth for the search session: the loaded apps, the live query and
@@ -18,8 +17,8 @@ final class LauncherModel {
     var selection: AppRecord.ID?
 
     var welcomeActive: Bool = true
-    var conflictActive: Bool = false
-    var activeHotkey: KeyboardShortcuts.Shortcut?
+    /// The hotkey in effect. `nil` until `HotkeyController` first evaluates it.
+    var hotkeyBinding: HotkeyBinding?
 
     @ObservationIgnored var onLaunch: ((AppRecord, String) -> Void)?
     @ObservationIgnored var onDismissRequested: (() -> Void)?

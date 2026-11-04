@@ -58,7 +58,7 @@ struct SearchView: View {
     @FocusState private var isFieldFocused: Bool
 
     private var footerHintLine: String {
-        formatShortcut(model.activeHotkey)
+        formatShortcut(model.hotkeyBinding?.shortcut)
     }
 
     private func formatShortcut(_ shortcut: KeyboardShortcuts.Shortcut?) -> String {
@@ -81,7 +81,7 @@ struct SearchView: View {
     }
 
     private var shouldShowHint: Bool {
-        (model.welcomeActive || model.conflictActive || config.config.alwaysShowHint) && model.query.isEmpty
+        (model.welcomeActive || model.hotkeyBinding == .fallback || config.config.alwaysShowHint) && model.query.isEmpty
     }
 
     private var surface: LauncherSurface {

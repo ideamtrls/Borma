@@ -1,7 +1,7 @@
 ---
 scope: Global hotkey, two-name pattern, Spotlight ⌘Space conflict + fallback
 globs: [Sources/Hotkey/Hotkey.swift]
-keywords: [global hotkey, KeyboardShortcuts, Spotlight, conflict, fallback, two-name pattern, symbolic hotkeys, CopySymbolicHotKeys, activeShortcut, saved shortcut, evaluateBinding, recheckConflict, app switch re-check, hotkey not firing, Borma and Spotlight both open, recorder change doesn't apply, wrong shortcut shown in UI]
+keywords: [global hotkey, KeyboardShortcuts, Spotlight, conflict, fallback, two-name pattern, symbolic hotkeys, CopySymbolicHotKeys, HotkeyBinding, saved shortcut, evaluateBinding, recheckConflict, app switch re-check, hotkey not firing, Borma and Spotlight both open, recorder change doesn't apply, wrong shortcut shown in UI]
 updated: 2026-11-03
 ---
 
@@ -11,10 +11,10 @@ The global hotkey, the two-name pattern, and the Spotlight ⌘Space conflict and
 
 ## Where things live
 
-- Controller, names, fallback constant, Spotlight check: `Sources/Hotkey/Hotkey.swift`, `HotkeyController`, `evaluateBinding()`, `fallbackShortcut`, `.toggleBorma`, `.toggleBormaFallback`, `recheckConflict()`, `frontmostAppDidChange(to:)`, private `SpotlightConflict.isSpotlightOnCmdSpace()`
-- Controller construction, `onTrigger` → `panel?.toggle()`, `onBindingChanged` → model, plus `panel?.show()` on a new conflict: `Sources/App/AppDelegate.swift`, `applicationDidFinishLaunching(_:)`
+- Binding state, controller, names, fallback constant, Spotlight check: `Sources/Hotkey/Hotkey.swift`, `HotkeyBinding`, `HotkeyController`, `evaluateBinding()`, `fallbackShortcut`, `.toggleBorma`, `.toggleBormaFallback`, `recheckConflict()`, `frontmostAppDidChange(to:)`, private `SpotlightConflict.isSpotlightOnCmdSpace()`
+- Controller construction, `onTrigger` → `panel?.toggle()`, `onBindingChanged` → model, plus `panel?.showIfHidden()` on a new conflict: `Sources/App/AppDelegate.swift`, `applicationDidFinishLaunching(_:)`
 - Recorder → re-evaluation: `Sources/App/BormaApp.swift`, `SettingsView` (`KeyboardShortcuts.Recorder`, `onShortcutChange`), calling `AppDelegate.refreshHotkeyBinding()`
-- UI-facing state: `Sources/Search/LauncherModel.swift`, `conflictActive`, `activeHotkey`
+- UI-facing state: `Sources/Search/LauncherModel.swift`, `hotkeyBinding`
 - Bib text: `Sources/Panel/SearchView.swift`, `footerHintLine`, `formatShortcut(_:)`
 - Library dependency: `packages.KeyboardShortcuts` in `project.yml`; source at `~/Library/Developer/Xcode/DerivedData/Borma-*/SourcePackages/checkouts/KeyboardShortcuts`
 - Persisted bindings: `UserDefaults` keys `KeyboardShortcuts_toggleBorma`, `KeyboardShortcuts_toggleBormaFallback`, stored in `~/Library/Containers/com.ideamtrls.borma/Data/Library/Preferences/com.ideamtrls.borma.plist`
@@ -71,8 +71,9 @@ The conflict is active when both:
 When active:
 
 - Borma disables `.toggleBorma` and enables `.toggleBormaFallback` with `⌘⇧Space` as its binding.
-- `activeShortcut` is the binding in effect (`⌘⇧Space`), not the user's saved preference. UI that tells the user what to press must use the active value, which views read as `model.activeHotkey` (copied by `AppDelegate`'s `onBindingChanged` closure). Only the Settings recorder shows the saved value, which it reads from the library.
-- `isOnFallback = true`. `AppDelegate` propagates this to `model.conflictActive`, which keeps the bib visible, and opens the panel when the conflict is new, at launch or while running, so the user sees the active hotkey (see `panel.md`).
+- `binding` is `.fallback`, whose `shortcut` is `⌘⇧Space`, not the user's saved preference. UI that tells the user what to press must use the binding's shortcut, which views read as `model.hotkeyBinding?.shortcut` (copied by `AppDelegate`'s `onBindingChanged` closure). Only the Settings recorder shows the saved value, which it reads from the library.
+- `AppDelegate` propagates the binding to `model.hotkeyBinding`, which keeps the bib visible while it's `.fallback`. When `isNewConflict(since:)` says the conflict is new, it opens the panel unless the panel is already up, so the user sees the active hotkey without losing what they're typing (see `panel.md`).
+- A conflict carried over from the last run isn't new. `.toggleBormaFallback` has a stored shortcut only while on the fallback, so `HotkeyController.init` seeds `binding` from it. A conflict that began while Borma wasn't running is new.
 
 When not active:
 
@@ -83,15 +84,15 @@ The recorder has its own, separate check. The library's `Shortcut.isTakenBySyste
 
 ## `evaluateBinding()`
 
-Called synchronously from `init`, so `onBindingChanged` first fires before `AppDelegate.hotkey` is assigned. Also called whenever the recorder changes or clears the shortcut: the recorder's `onChange` runs `onShortcutChange`, which `BormaApp` wires to `AppDelegate.refreshHotkeyBinding()`. `recheckConflict()` also calls it when the conflict answer changes.
+Called synchronously from `init`, so `onBindingChanged` first fires before `AppDelegate.hotkey` is assigned. Also called whenever the recorder changes or clears the shortcut: the recorder's `onChange` runs `onShortcutChange`, which `BormaApp` wires to `AppDelegate.refreshHotkeyBinding()`. `recheckConflict()` runs the same `apply(_:)` when the resolved binding changes.
 
 Steps:
 
 1. Read the saved binding via `KeyboardShortcuts.getShortcut(for: .toggleBorma)`.
-2. Only if it is exactly `⌘Space`, check `SpotlightConflict.isSpotlightOnCmdSpace()`. The `&&` short-circuits, so any other binding never calls Carbon.
-3. If conflict: disable primary, set fallback shortcut, enable fallback; `activeShortcut = fallbackShortcut`, `isOnFallback = true`.
-4. Otherwise: disable fallback, clear its shortcut, enable primary; `activeShortcut = saved`, `isOnFallback = false`.
-5. Fire `onBindingChanged(isOnFallback, activeShortcut)`.
+2. `HotkeyBinding.resolve(saved:cmdSpaceTaken:)` decides the binding. Only if the saved binding is exactly `⌘Space` does it check `SpotlightConflict.isSpotlightOnCmdSpace()`: `cmdSpaceTaken` is an `@autoclosure` behind `&&`, so any other binding never calls Carbon.
+3. `.fallback`: disable primary, set fallback shortcut, enable fallback.
+4. `.saved` or `.unbound`: disable fallback, clear its shortcut, enable primary.
+5. Store the result in `binding` and fire `onBindingChanged(binding, previous)`.
 
 Step 4's shape matters because `.toggleBorma` can hold the same `⌘⇧Space` as the fallback (it's the default):
 
@@ -113,13 +114,13 @@ macOS posts no observable notification when a symbolic hotkey changes, so `Hotke
 - **Every app switch** (`NSWorkspace.didActivateApplicationNotification`). Summoning Borma counts as a switch.
 - **Once a second while System Settings is frontmost and `⌘Space` is saved** (`settingsWatch`). No app switch follows a change made there, so `⌘Space` pressed right after freeing it would otherwise do nothing. The watch ends at the next app switch.
 
-`recheckConflict()` calls `evaluateBinding()` only when the answer differs from `isOnFallback`, because `evaluateBinding()` unregisters and re-registers hot keys.
+`recheckConflict()` calls `apply(_:)` only when the resolved binding differs from `binding`, because `apply(_:)` unregisters and re-registers hot keys.
 
 ## Diagnosing a dead hotkey
 
 - `Log.hotkey` records conflict changes and `CopySymbolicHotKeys` failures. Nothing else in this area logs.
-- A failed `RegisterEventHotKey` is only `print`ed by the library. Borma still sets `activeShortcut`, so the bib can show a shortcut that isn't live.
-- Clearing the recorder stores `false` under `KeyboardShortcuts_toggleBorma` (the name has a default). `getShortcut` then returns `nil`, the default is not reapplied, nothing is registered, `activeShortcut` is `nil`, and the bib shows `—`. The menu bar's Show Borma still reaches the panel.
+- A failed `RegisterEventHotKey` is only `print`ed by the library. Borma still sets `binding`, so the bib can show a shortcut that isn't live.
+- Clearing the recorder stores `false` under `KeyboardShortcuts_toggleBorma` (the name has a default). `getShortcut` then returns `nil`, the default is not reapplied, nothing is registered, `binding` is `.unbound`, and the bib shows `—`. The menu bar's Show Borma still reaches the panel.
 - Handlers don't fire while the recorder has focus (`KeyboardShortcuts.isPaused`).
 - Inspect saved bindings with `plutil -p` on the plist listed under "Where things live". Values are JSON with Carbon numbers: `{"carbonModifiers":256,"carbonKeyCode":49}` is `⌘Space`. `256` is Carbon's `cmdKey`.
 

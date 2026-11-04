@@ -1,7 +1,7 @@
 ---
 scope: Borma-specific vocabulary (frecency, welcome bib, dismiss, two-name pattern, active vs. saved shortcut, ContinuationBox, app vs. config watcher)
 globs: []
-keywords: [glossary, terminology, vocabulary, jargon, frecency, welcome bib, notch, hint, footer, dismiss, two-name hotkey pattern, active vs saved shortcut, activeShortcut, activeHotkey, ContinuationBox, app scan vs app watcher vs config watcher, two-pass walk, input section, LauncherSurface, Settings adoption, observation re-arm]
+keywords: [glossary, terminology, vocabulary, jargon, frecency, welcome bib, notch, hint, footer, dismiss, two-name hotkey pattern, active vs saved shortcut, HotkeyBinding, hotkeyBinding, ContinuationBox, app scan vs app watcher vs config watcher, two-pass walk, input section, LauncherSurface, Settings adoption, observation re-arm]
 updated: 2026-11-03
 ---
 
@@ -39,7 +39,7 @@ Two `KeyboardShortcuts.Name` values, because the library can't override a bindin
 
 ## Active vs. saved shortcut
 
-The **saved** shortcut is what the user picked in Settings, or the ⌘⇧Space default. The **active** shortcut (`HotkeyController.activeShortcut`, surfaced to views as `model.activeHotkey`) is what's registered with the system. They diverge only on the fallback: saved ⌘Space, active ⌘⇧Space.
+The **saved** shortcut is what the user picked in Settings, or the ⌘⇧Space default. The **active** shortcut (the `shortcut` of `HotkeyController.binding`, surfaced to views through `model.hotkeyBinding`) is what's registered with the system. They diverge only on the fallback: saved ⌘Space, active ⌘⇧Space.
 
 - Source: `Sources/Hotkey/Hotkey.swift`.
 - Deep doc: `hotkey.md`.
