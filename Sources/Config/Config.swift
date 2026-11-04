@@ -34,12 +34,17 @@ struct Config: Codable, Equatable {
     }
 }
 
-struct HexColor: Codable, Equatable {
-    var red: Double
-    var green: Double
-    var blue: Double
+/// A color at exactly the precision `config.json` stores: 8 bits per channel.
+/// Because memory and disk hold the same values, a saved color always reloads
+/// equal, which `AppDelegate`'s config-changed check relies on. A `String`
+/// `RawRepresentable` gets its `Codable` from the standard library: it encodes
+/// as `#RRGGBB`, and a malformed string throws `DecodingError`.
+struct HexColor: RawRepresentable, Codable, Equatable {
+    var red: UInt8
+    var green: UInt8
+    var blue: UInt8
 
-    init(red: Double, green: Double, blue: Double) {
+    init(red: UInt8, green: UInt8, blue: UInt8) {
         self.red = red
         self.green = green
         self.blue = blue
@@ -47,43 +52,39 @@ struct HexColor: Codable, Equatable {
 
     init?(color: Color) {
         guard let ns = NSColor(color).usingColorSpace(.sRGB) else { return nil }
-        self.red = Double(ns.redComponent)
-        self.green = Double(ns.greenComponent)
-        self.blue = Double(ns.blueComponent)
+        self.init(
+            red: Self.channel(ns.redComponent),
+            green: Self.channel(ns.greenComponent),
+            blue: Self.channel(ns.blueComponent)
+        )
+    }
+
+    init?(rawValue: String) {
+        var s = rawValue.trimmingCharacters(in: .whitespaces)
+        if s.hasPrefix("#") { s.removeFirst() }
+        guard s.count == 6, let v = UInt32(s, radix: 16) else { return nil }
+        self.init(
+            red: UInt8(truncatingIfNeeded: v >> 16),
+            green: UInt8(truncatingIfNeeded: v >> 8),
+            blue: UInt8(truncatingIfNeeded: v)
+        )
+    }
+
+    var rawValue: String {
+        String(format: "#%02X%02X%02X", red, green, blue)
     }
 
     var color: Color {
-        Color(.sRGB, red: red, green: green, blue: blue, opacity: 1)
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let raw = try container.decode(String.self)
-        guard let parsed = HexColor.parse(raw) else {
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Expected #RRGGBB hex string, got \(raw)"
-            )
-        }
-        self = parsed
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        let r = max(0, min(255, Int((red * 255).rounded())))
-        let g = max(0, min(255, Int((green * 255).rounded())))
-        let b = max(0, min(255, Int((blue * 255).rounded())))
-        try container.encode(String(format: "#%02X%02X%02X", r, g, b))
-    }
-
-    private static func parse(_ raw: String) -> HexColor? {
-        var s = raw.trimmingCharacters(in: .whitespaces)
-        if s.hasPrefix("#") { s.removeFirst() }
-        guard s.count == 6, let v = UInt32(s, radix: 16) else { return nil }
-        return HexColor(
-            red: Double((v >> 16) & 0xFF) / 255,
-            green: Double((v >> 8) & 0xFF) / 255,
-            blue: Double(v & 0xFF) / 255
+        Color(
+            .sRGB,
+            red: Double(red) / 255,
+            green: Double(green) / 255,
+            blue: Double(blue) / 255,
+            opacity: 1
         )
+    }
+
+    private static func channel(_ component: CGFloat) -> UInt8 {
+        UInt8(clamping: Int((component * 255).rounded()))
     }
 }

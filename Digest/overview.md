@@ -82,7 +82,7 @@ AppInfo               — Bundle identity (`bundleID`), read from the bundle at 
 
 **Dismiss (Esc, Return or row click, or hotkey / "Show Borma" while visible).** `PanelController.hide()` orders the panel out and calls `model.reset()`. The first `hide()` while `WelcomeFlag.isActive` retires the flag, persists it, and clears `model.welcomeActive`. Click-away does not dismiss — see `panel.md`.
 
-**Config or app dir changes.** The corresponding `FileWatcher` yields a `Void` on its `events` `AsyncStream`. The config watcher covers the whole App Support directory (see `concurrency.md`), so frecency saves and `ConfigStore`'s own writes fire it too; the consumer reloads the config and only rescans + re-attaches the app watcher when the reloaded `Config` differs (`Config` is `Equatable`). Settings edits update the in-memory `Config` before saving, so they reload equal, with one exception: `HexColor` persists as `#RRGGBB`, so a picked color generally reloads as a slightly different value, which costs a rescan and a re-attach. App-dir events always trigger a rescan; `model.apps` is replaced with the new list.
+**Config or app dir changes.** The corresponding `FileWatcher` yields a `Void` on its `events` `AsyncStream`. The config watcher covers the whole App Support directory (see `concurrency.md`), so frecency saves and `ConfigStore`'s own writes fire it too; the consumer reloads the config and only rescans + re-attaches the app watcher when the reloaded `Config` differs (`Config` is `Equatable`). Settings edits update the in-memory `Config` before saving, so they reload equal. That includes colors, because `HexColor` holds the same 8 bits per channel in memory as `#RRGGBB` does on disk. App-dir events always trigger a rescan; `model.apps` is replaced with the new list.
 
 ## Persistence
 
@@ -115,7 +115,7 @@ When adding a new persisted store, follow the same contract: `Codable` with an e
 `Config` has a hand-written `init(from:)`, and `Config.default` supplies the out-of-box values.
 
 - `version`, `searchPaths`: required. A file missing either fails decode. Default paths are `/Applications` and `/System/Applications`.
-- `highlightColor`: optional `HexColor`, stored as a `#RRGGBB` string. Absent means the system accent color. A malformed value fails decode for the whole file.
+- `highlightColor`: optional `HexColor`, stored as a `#RRGGBB` string and held in memory as three `UInt8`s. Absent means the system accent color. A malformed value fails decode for the whole file.
 - `alwaysShowHint`: optional, defaults to `false`.
 
 **Adding a setting.** Decode the new field with `decodeIfPresent` and a default in `init(from:)`, then add its control to `SettingsView`. A required key fails decode on every existing file, which moves the user's config aside and resets it.
