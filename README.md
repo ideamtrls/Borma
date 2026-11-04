@@ -34,11 +34,11 @@ xcodegen generate
 open Borma.xcodeproj
 ```
 
-Set your dev team in Signing and Capabilities, then Command + R. See `Memory/build.md` for details.
+Set your dev team in Signing and Capabilities, then Command + R. See `Digest/build.md` for details.
 
 ## Configuration
 
-Stored in `~/Library/Application Support/com.ideamtrls.borma/`:
+Stored in `~/Library/Containers/com.ideamtrls.borma/Data/Library/Application Support/com.ideamtrls.borma/`:
 
 - `config.json`: search paths, highlight color, UI toggles.
 - `frecency.json`: launch history.

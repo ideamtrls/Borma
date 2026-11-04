@@ -2,10 +2,10 @@
 
 macOS app launcher with a global-hotkey-summoned floating search panel.
 
-Rules that apply to *every* task (area-specific conventions live in the memory files, loaded on demand):
+Rules that apply to *every* task (area-specific conventions live in the digest files, loaded on demand):
 
 - **Logging:** Use `Log.<category>` from `Sources/App/Logging.swift`; never `print()`. Add `privacy: .public` to interpolated values you intend to surface in Console.
-- **Doc updates:** When you change behavior, update the matching `Memory/` file as part of the same change. Run `/memorymtrls:improve` periodically to audit the whole memory set.
+- **Doc updates:** When you change behavior, update the matching `Digest/` file as part of the same change. Run `/digestmtrls:improve` periodically to audit the whole digest set.
 
 <!-- digestmtrls:start -->
 

@@ -47,7 +47,7 @@ Built app bundles stay out of git: `/Borma/` is gitignored and builds are distri
 
 ## Signing & entitlements
 
-`project.yml` wires three signing-related settings: `CODE_SIGN_STYLE = Automatic`, `ENABLE_HARDENED_RUNTIME = YES`, and `CODE_SIGN_ENTITLEMENTS = Borma.entitlements`. The entitlements file is tiny — it enables `com.apple.security.app-sandbox` only. Add new capabilities (e.g. a security-scoped bookmark or network access) by editing `Borma.entitlements` directly; it's referenced by path from `project.yml`, so no `xcodegen generate` is needed for entitlement-only changes (regenerate only if you change the `CODE_SIGN_ENTITLEMENTS` wiring itself).
+`project.yml` wires three signing-related settings: `CODE_SIGN_STYLE = Automatic`, `ENABLE_HARDENED_RUNTIME = YES`, and `CODE_SIGN_ENTITLEMENTS = Borma.entitlements`. The entitlements file is tiny — it enables `com.apple.security.app-sandbox` only. Borma is sandboxed on purpose, so features work within the sandbox rather than around it. Add new capabilities (e.g. a security-scoped bookmark or network access) by editing `Borma.entitlements` directly; it's referenced by path from `project.yml`, so no `xcodegen generate` is needed for entitlement-only changes (regenerate only if you change the `CODE_SIGN_ENTITLEMENTS` wiring itself).
 
 ## App sandbox at runtime
 
