@@ -1,8 +1,8 @@
 ---
 scope: Reverse map from source file to covering digest, plus a task index of dev commands and change recipes
 globs: []
-keywords: [index, navigation, reverse map, which digest covers this file, can't find the right digest, task index, dev commands, reset frecency, reset config, reset welcome bib, force Spotlight conflict, config schema change, frecency schema migration, add a setting, add a source file, add a log category, view logs, version bump]
-updated: 2026-11-03
+keywords: [index, navigation, reverse map, which digest covers this file, can't find the right digest, task index, dev commands, reset frecency, reset config, reset welcome bib, force Spotlight conflict, config schema change, frecency schema migration, add a setting, add a source file, add a log category, view logs, version bump, publish to TestFlight]
+updated: 2026-11-04
 ---
 
 # Digest index
@@ -34,6 +34,7 @@ The primary doc is the one whose `globs` claim the file and that owns the deep e
 | `Sources/Resources/Assets.xcassets` | `build.md` (`AppIcon`, `MenuBarIcon`) | — |
 | `project.yml` | `build.md` (xcodegen) | `concurrency.md` (`-default-isolation MainActor`), `overview.md` (bundle id) |
 | `Borma.entitlements` | `build.md` (app sandbox, signing) | `overview.md` (data paths) |
+| `Scripts/upload.sh`, `Scripts/distribute.swift` | `build.md` (TestFlight uploads) | — |
 
 ## Task index
 
@@ -59,6 +60,7 @@ Reset commands need Borma quit, because a running app undoes them: `FrecencyStor
 | Reset the welcome bib in dev | Quit Borma, then `defaults delete com.ideamtrls.borma borma.welcome.dismissed`. `defaults` resolves that domain to the plist in the container. The next launch opens the panel with the bib |
 | Surface a new log category | `Sources/App/Logging.swift` (add to `Log` enum), then `Log.<category>.error(...)` |
 | Tune fuzzy-match scoring | `search.md` (`Matcher` constants table) |
+| Upload a build to TestFlight | `Scripts/upload.sh`; `build.md` ("Uploading to TestFlight") has what it needs |
 | View Borma's logs | `overview.md` (Logging), or filter by the `com.ideamtrls.borma` subsystem in Console.app |
 | Wrap another FSEvents-style C API (callback + `info` pointer) | `concurrency.md` (`ContinuationBox` pattern) |
 

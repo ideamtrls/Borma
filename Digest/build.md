@@ -1,13 +1,13 @@
 ---
-scope: xcodegen project generation, build settings, signing, app sandbox behavior, SPM dependencies, asset catalog, dev loop
-globs: [project.yml, Borma.entitlements, Sources/Resources/**]
-keywords: [build, xcodegen, signing, entitlements, app sandbox, sandbox container, hardened runtime, SPM, dependency, Package.resolved, project.yml, xcodebuild, code signing, unsigned build, project file regenerated, new file not compiled, Xcode dev team not set, package dependency change, CI build fails on signing, version bump, MARKETING_VERSION, Info.plist, LSUIElement, deployment target, bundle id, asset catalog, AppIcon, menu bar icon, app icon blank or missing]
-updated: 2026-11-03
+scope: xcodegen project generation, build settings, signing, app sandbox behavior, SPM dependencies, asset catalog, dev loop, TestFlight uploads
+globs: [project.yml, Borma.entitlements, Scripts/**, Sources/Resources/**]
+keywords: [build, xcodegen, signing, entitlements, app sandbox, sandbox container, hardened runtime, SPM, dependency, Package.resolved, project.yml, xcodebuild, code signing, unsigned build, project file regenerated, new file not compiled, Xcode dev team not set, package dependency change, CI build fails on signing, version bump, MARKETING_VERSION, Info.plist, LSUIElement, deployment target, bundle id, asset catalog, AppIcon, menu bar icon, app icon blank or missing, BORMA_TEAM, BORMA_TESTFLIGHT_GROUP, TestFlight, public link, Beta App Review, export compliance, App Store Connect, upload, API key, Scripts/upload.sh, Scripts/distribute.swift]
+updated: 2026-11-04
 ---
 
 # Build & run
 
-Generating the Xcode project with xcodegen, build settings, signing and the app sandbox, SPM dependencies, the asset catalog, and the dev loop.
+Generating the Xcode project with xcodegen, build settings, signing and the app sandbox, SPM dependencies, the asset catalog, the dev loop, and TestFlight uploads.
 
 ## Where things live
 - Project spec (target, build settings, package): `project.yml`
@@ -16,6 +16,7 @@ Generating the Xcode project with xcodegen, build settings, signing and the app 
 - Resolved package versions, gitignored: `Borma.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`
 - Version numbers: `MARKETING_VERSION`, `CURRENT_PROJECT_VERSION` in `project.yml`
 - Info.plist keys: `INFOPLIST_KEY_*` in `project.yml`
+- TestFlight upload and distribution: `Scripts/upload.sh`, `Scripts/distribute.swift`
 - Asset catalog: `Sources/Resources/Assets.xcassets`, sets `AppIcon.appiconset` and `MenuBarIcon.imageset`
 - Menu bar icon reference: `Sources/App/BormaApp.swift`, `BormaApp.body`
 - Bundle id read back at runtime: `Sources/App/AppInfo.swift`, `AppInfo.bundleID`
@@ -25,11 +26,13 @@ Generating the Xcode project with xcodegen, build settings, signing and the app 
 
 ```bash
 brew install xcodegen     # if not installed
+cp .env.example .env      # then fill in BORMA_TEAM, your Apple team ID
+set -a; . ./.env; set +a  # xcodegen doesn't read .env itself
 xcodegen generate         # writes Borma.xcodeproj from project.yml
-open Borma.xcodeproj      # then set your dev team in Signing & Capabilities
+open Borma.xcodeproj
 ```
 
-In Xcode: **Borma target → Signing & Capabilities → Team**, pick your own team. `CODE_SIGN_STYLE = Automatic` is already configured, so Xcode handles the certificate and provisioning profile. `project.yml` sets no `DEVELOPMENT_TEAM`, so the team lives only in the generated project and every `xcodegen generate` clears it. Pick it again after regenerating.
+`project.yml` sets `DEVELOPMENT_TEAM: ${BORMA_TEAM}`, and `xcodegen` fills in the variable when it generates, so the ID lives only in `.env` and the gitignored project. Without the variable, the literal `${BORMA_TEAM}` is written to the project, so set it before generating. `CODE_SIGN_STYLE = Automatic` is already configured, so Xcode handles the certificate and provisioning profile.
 
 ⌘R to build and run. A debug build and an installed `/Applications/Borma.app` share a bundle id, so they share a sandbox container (config, frecency, saved hotkey) and both try to register the hotkey. Quit the installed copy first.
 
@@ -39,11 +42,34 @@ All in `project.yml`, under the `Borma` target unless noted:
 
 - **Swift:** `SWIFT_VERSION: "6.0"` plus `OTHER_SWIFT_FLAGS: "-default-isolation MainActor"`, so declarations are main-actor isolated unless marked otherwise.
 - **Deployment target:** macOS 26.0, set in both `options.deploymentTarget.macOS` (project level) and `MACOSX_DEPLOYMENT_TARGET` (target level). Keep them in step.
-- **Info.plist:** generated (`GENERATE_INFOPLIST_FILE: YES`). The repo has no `Info.plist`, so a new key goes in as an `INFOPLIST_KEY_*` setting. `INFOPLIST_KEY_LSUIElement: YES` is what removes the Dock icon.
+- **Info.plist:** generated (`GENERATE_INFOPLIST_FILE: YES`). The repo has no `Info.plist`, so a new key goes in as an `INFOPLIST_KEY_*` setting. `INFOPLIST_KEY_LSUIElement: YES` is what removes the Dock icon. `INFOPLIST_KEY_LSApplicationCategoryType` is required for App Store Connect uploads.
 - **Bundle id:** `PRODUCT_BUNDLE_IDENTIFIER`. `AppInfo.bundleID` reads it from the bundle for the log subsystem and the Application Support directory name, with a `com.ideamtrls.borma` literal as a fallback for non-bundled contexts. Change the literal along with the setting.
 - **Version:** `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION`. Bump them here, then regenerate. `CURRENT_PROJECT_VERSION` only ever goes up, including across a `MARKETING_VERSION` bump.
 
-Built app bundles stay out of git: `/Borma/` is gitignored and builds are distributed through GitHub Releases. The repo has no release script.
+Built app bundles stay out of git: `/Borma/` and `build/` are gitignored. Builds reach testers through a public TestFlight link.
+
+## Uploading to TestFlight
+
+To publish:
+
+1. In App Store Connect, under Users and Access → Integrations → App Store Connect API, create a team key with the Admin role, which upload signing needs. Apple offers the file for download once.
+2. Move it to `~/.appstoreconnect/private_keys/AuthKey_<ASC_KEY_ID>.p8`.
+3. Fill in `.env`, copied from `.env.example`. It's read as a shell script, so keep the quotes.
+4. Run `Scripts/upload.sh`.
+
+`Scripts/upload.sh` checks App Store Connect access, regenerates the project, archives a Release build, uploads it, and then runs `Scripts/distribute.swift`. That waits for Apple to process the build, adds it to the public group, and submits it for Beta App Review. Everything it writes goes under `build/release/`, with its own derived data, so it can't replace a build running from `build/`.
+
+Secrets stay outside the repo:
+
+- `BORMA_TEAM`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `BORMA_TESTFLIGHT_GROUP` — in the gitignored `.env`, which `upload.sh` loads and `.env.example` lists, or in the shell environment. `.env` overrides the shell. `xcodegen` doesn't read it, so a hand-run `xcodegen generate` needs `set -a; . ./.env; set +a` first.
+- The API key file — in the home directory, not the project. `.gitignore` also excludes `*.p8` in case one lands in the project.
+- Generated output — the gitignored `Borma.xcodeproj/` and `build/release/` hold the team ID, and the upload log can hold the key and issuer IDs.
+
+Every signed app contains its team ID, so the ID stays out of the repo but isn't hidden from anyone with the app.
+
+Archives use the commit count as the build number, overriding `CURRENT_PROJECT_VERSION`, so `distribute.swift` knows which build to wait for. Apple rejects a second upload with the same version and commit count as a duplicate. If the upload succeeds but distribution fails, `upload.sh` prints the command that retries only that part.
+
+`distribute.swift` treats a 409 from the review submission as not fatal, because Apple returns it for a build that's already submitted, and prints Apple's reason. Testers don't get a build until Apple approves it. `INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO` declares that Borma uses no encryption, which skips the export compliance question on each build.
 
 ## Signing & entitlements
 
@@ -88,7 +114,7 @@ The generated `Borma.xcodeproj/` is gitignored, which keeps Xcode's randomly-ord
 xcodebuild -project Borma.xcodeproj -scheme Borma -configuration Debug build
 ```
 
-`project.yml` declares no schemes; `xcodebuild` autocreates `Borma`, so this works on a freshly generated project. Signing still needs a team: pick one in Xcode or add `DEVELOPMENT_TEAM=<id>` to the command.
+`project.yml` declares no schemes; `xcodebuild` autocreates `Borma`, so this works on a freshly generated project. Signing uses the team `xcodegen` filled in from `BORMA_TEAM`; add `DEVELOPMENT_TEAM=<id>` to the command to override it.
 
 For ad-hoc unsigned testing builds (useful in CI-like contexts; the repo has no CI config):
 

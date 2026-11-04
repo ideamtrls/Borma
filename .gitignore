@@ -1,7 +1,7 @@
 # macOS
 .DS_Store
 
-# Built app bundle (distribute via Releases, not git)
+# Built app bundle (distribute via TestFlight, not git)
 /Borma/
 
 # Xcode
@@ -28,3 +28,7 @@ Package.resolved
 
 # Personal workflow notes (plans, specs, scratch). See CLAUDE.md.
 .notes/
+
+# Local secrets. See .env.example.
+.env
+*.p8

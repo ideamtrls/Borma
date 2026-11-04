@@ -30,11 +30,12 @@ Borma uses [xcodegen](https://github.com/yonaskolb/XcodeGen).
 
 ```bash
 brew install xcodegen
+export BORMA_TEAM=<your Apple team ID>
 xcodegen generate
 open Borma.xcodeproj
 ```
 
-Set your dev team in Signing and Capabilities, then Command + R. See `Digest/build.md` for details.
+Then Command + R. See `Digest/build.md` for details.
 
 ## Configuration
 

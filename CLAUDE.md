@@ -20,7 +20,7 @@ This project's working context lives in `Digest/`, with one file per category of
 | Digest file | Read this when… |
 | ----------- | --------------- |
 | `Digest/overview.md` | getting oriented; locating where something is defined, what runs at startup, the config schema, logging, where config/frecency/UserDefaults live on disk, or a "config edit has no effect" / "config reset to defaults" problem |
-| `Digest/build.md` | regenerating the Xcode project, changing `project.yml` or `Borma.entitlements`, adding an SPM dependency or source file, bumping the version, a blank app icon, how the app sandbox changes runtime behavior, or fixing signing / CI build issues |
+| `Digest/build.md` | regenerating the Xcode project, changing `project.yml` or `Borma.entitlements`, adding an SPM dependency or source file, bumping the version, a blank app icon, how the app sandbox changes runtime behavior, fixing signing / CI build issues, or publishing to TestFlight |
 | `Digest/concurrency.md` | touching async / isolation code, hitting a `Sendable`, `nonisolated`, or data-race error, adding a custom `Shape`, writing an FSEvents wrapper, or chasing an FSEvents-callback / `dispatch_assert_queue` crash |
 | `Digest/search.md` | working on app discovery, fuzzy-match scoring, frecency ranking, or an "app missing from results" / "ranking feels wrong" bug |
 | `Digest/panel.md` | changing the search view, panel sizing / position / dismissal, Settings adoption, or the bib (notch) — or a "panel resizes / dismisses wrong" or "panel opened by itself" bug |

@@ -2,7 +2,7 @@
 scope: System map — source layout, component graph, startup and data flow, config schema, on-disk persistence locations, logging
 globs: [Sources/App/BormaApp.swift, Sources/App/AppDelegate.swift, Sources/App/AppInfo.swift, Sources/App/Logging.swift, Sources/Config/Config.swift, Sources/Config/ConfigStore.swift]
 keywords: [overview, system map, source layout, component graph, data flow, persistence, sandbox, container, Application Support, UserDefaults, config.json, config.json.errors, frecency.json, atomic write, Codable version field, migration, scenes, MenuBarExtra, Settings, launch at login, startup, Log, logging, AppInfo, bundle id, where is X defined, what runs at startup, where does config or frecency live on disk, config edit has no effect, config reset to defaults, dismiss flow]
-updated: 2026-11-03
+updated: 2026-11-04
 ---
 
 # Overview
@@ -31,6 +31,7 @@ The repo aims for a small surface area: ~1,400 lines of Swift, one external depe
 - Match scoring: `Sources/Search/Matcher.swift`, `Matcher`
 - Launch history: `Sources/Search/FrecencyStore.swift`, `FrecencyStore`
 - Sandbox and bundle id settings: `Borma.entitlements`; `project.yml`, `CODE_SIGN_ENTITLEMENTS`, `PRODUCT_BUNDLE_IDENTIFIER`
+- TestFlight publishing: `Scripts/upload.sh`, `Scripts/distribute.swift`; see `build.md`
 
 ## Source layout
 
