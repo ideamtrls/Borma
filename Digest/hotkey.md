@@ -96,7 +96,7 @@ Steps:
 
 Step 4's shape matters because `.toggleBorma` can hold the same `⌘⇧Space` as the fallback (it's the default):
 
-- The fallback must be cleared, not just disabled. Dispatch is by value, so a fallback left holding `⌘⇧Space` would fire `onTrigger` alongside `.toggleBorma`, and the two `PanelController.summon()` calls cancel out.
+- The fallback must be cleared, not just disabled. Dispatch is by value, so a fallback left holding `⌘⇧Space` would fire `onTrigger` alongside `.toggleBorma`, running `PanelController.summon()` twice per press.
 - `.toggleBorma` must be enabled last. `disable` and `setShortcut(nil, for:)` unregister by value, which would otherwise drop the primary's hot key.
 
 ## Spotlight detection

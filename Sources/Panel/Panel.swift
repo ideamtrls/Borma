@@ -77,7 +77,8 @@ final class PanelController {
         )
     }
 
-    /// What the hotkey and the menu bar's Show Borma do.
+    /// What the hotkey and the menu bar's Show Borma do: put the user in the
+    /// search field. They never close the panel; Esc does that.
     func summon() {
         switch PanelPresence(isVisible: panel.isVisible, isKey: panel.isKeyWindow) {
         case .hidden:
@@ -86,7 +87,7 @@ final class PanelController {
             rememberAppBeneath()
             takeFocus()
         case .focused:
-            hide(.cancelled)
+            break
         }
     }
 

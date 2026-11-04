@@ -45,7 +45,7 @@ The SwiftUI root view is hosted via `NSHostingView(rootView: SearchView(...))`, 
 
 Callers:
 
-- **Hotkey** and the menu bar **Show Borma** item call `summon()`, which switches on `PanelPresence`. `.hidden` calls `show()`. `.unfocused` (on screen, but not the key window) calls `rememberAppBeneath()` and `takeFocus()`, keeping the query and position. `.focused` calls `hide(.cancelled)`. The hotkey is registered system-wide, so it reaches Borma whichever app has focus.
+- **Hotkey** and the menu bar **Show Borma** item call `summon()`, which switches on `PanelPresence`. `.hidden` calls `show()`. `.unfocused` (on screen, but not the key window) calls `rememberAppBeneath()` and `takeFocus()`, keeping the query and position. `.focused` does nothing, so neither ever closes the panel. The hotkey is registered system-wide, so it reaches Borma whichever app has focus.
 - **App launch** calls `showIfHidden()` from `applicationDidFinishLaunching(_:)` while `welcome.isActive`.
 - **New hotkey conflict** calls `showIfHidden()` from `AppDelegate`'s `onBindingChanged` closure, so the user sees the hotkey that replaced theirs. `showIfHidden()` does nothing if the panel is already up, since `show()` clears the query. A conflict carried over from the last run doesn't count as new (`hotkey.md`).
 - **App reopen** calls `show()` from `applicationShouldHandleReopen(_:hasVisibleWindows:)`, even if the panel is already visible, which clears the query and re-centers it.
@@ -110,8 +110,6 @@ Triggers:
 - **Esc** — `.onKeyPress(.escape)` on the `TextField` calls `model.onDismissRequested` with `.cancelled`, which `AppDelegate` wires to `panel.hide(_:)`.
 - **Return** — `.onSubmit` calls `LauncherModel.launchSelection()`. If `selectedApp(in:)` finds an app, it invokes `onLaunch` then `onDismissRequested` with `.launching`; otherwise (empty query, no matches) it invokes only `onDismissRequested`, with `.cancelled`. The launch outcome isn't checked: `AppLauncher.launch` is asynchronous and a failure logs and beeps after the panel is gone.
 - **Click on a result row** — `.onTapGesture` sets `model.selection` and calls `launchSelection()`.
-- **Hotkey re-pressed while focused** — `HotkeyController` runs its `onTrigger` closure, which `AppDelegate` wires to `panel.summon()`; `summon()` calls `hide(.cancelled)` when the panel is `.focused`.
-- **Show Borma menu item** — also `summon()`, so it hides a focused panel.
 
 **Click-away does *not* dismiss the panel.** `hidesOnDeactivate = false` is set deliberately, and `panelResignedKey(_:)` doesn't call `hide(_:)`. The panel stays on screen at `.statusBar` level, above normal windows but not key, until one of the triggers above fires. Keystrokes go to the new key window, so Esc and Return don't reach it. The hotkey gives it focus back with the query intact, and cancelling then returns focus to the app that was frontmost when the hotkey was pressed.
 
