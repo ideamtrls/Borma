@@ -100,7 +100,7 @@ These work for compile checks, but they run unsandboxed, so they can't validate 
 
 ## Dependencies
 
-Single SPM package: `KeyboardShortcuts` (Sindre Sorhus), declared in `project.yml`'s `packages:` section as `from: 2.0.0`. That is a floor up to the next major version, not a pin. SPM resolves on first Xcode open or `xcodebuild` run. `Package.resolved` lives inside `Borma.xcodeproj/` and isn't committed, so a fresh clone takes the newest 2.x.
+Single SPM package: `KeyboardShortcuts` (Sindre Sorhus), declared in `project.yml`'s `packages:` section as `exactVersion: 2.4.0`. It's pinned because `HotkeyController` depends on how that version registers and dispatches hot keys; check `hotkey.md` ("Library behaviour this relies on") before changing it. SPM resolves on first Xcode open or `xcodebuild` run. `Package.resolved` lives inside `Borma.xcodeproj/` and isn't committed, so the pin in `project.yml` is what gives a fresh clone the same version.
 
 To add a package, add it to `packages:` and to the target's `dependencies:`, then regenerate.
 

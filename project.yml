@@ -8,7 +8,7 @@ options:
 packages:
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
-    from: 2.0.0
+    exactVersion: 2.4.0
 
 targets:
   Borma:

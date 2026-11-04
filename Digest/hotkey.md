@@ -22,7 +22,7 @@ The global hotkey, the two-name pattern, and the Spotlight ⌘Space conflict and
 
 ## Library behaviour this relies on
 
-`HotkeyController` uses [`KeyboardShortcuts`](https://github.com/sindresorhus/KeyboardShortcuts) (Carbon-backed via `RegisterEventHotKey`, no Accessibility permission required). `SpotlightConflict` does not use it. As of the resolved 2.4.0:
+`HotkeyController` uses [`KeyboardShortcuts`](https://github.com/sindresorhus/KeyboardShortcuts) (Carbon-backed via `RegisterEventHotKey`, no Accessibility permission required). `SpotlightConflict` does not use it. `project.yml` pins 2.4.0, where:
 
 - `setShortcut(_:for:)` writes to `UserDefaults` and registers the shortcut. There is no in-memory-only binding.
 - `enable` / `disable` register / unregister the Carbon hot key for the name's current `Shortcut`, by value. Neither persists anything or touches handlers.
