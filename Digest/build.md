@@ -19,7 +19,7 @@ Generating the Xcode project with xcodegen, build settings, signing and the app 
 - Asset catalog: `Sources/Resources/Assets.xcassets`, sets `AppIcon.appiconset` and `MenuBarIcon.imageset`
 - Menu bar icon reference: `Sources/App/BormaApp.swift`, `BormaApp.body`
 - Bundle id read back at runtime: `Sources/App/AppInfo.swift`, `AppInfo.bundleID`
-- Code the sandbox affects: `appSupportDir()` in `Sources/App/AppDelegate.swift`, `SpotlightConflict` in `Sources/Hotkey/Hotkey.swift`, `AppScanner` in `Sources/Search/Apps.swift`
+- Code the sandbox affects: `appSupportDir()` in `Sources/App/AppDelegate.swift`, `AppScanner` in `Sources/Search/Apps.swift`
 
 ## First-time setup
 
@@ -55,9 +55,9 @@ Any build signed with `Borma.entitlements` runs sandboxed, which changes what fi
 
 - **Home and Application Support resolve inside the container**, `~/Library/Containers/com.ideamtrls.borma/Data/`. Config, frecency, and `UserDefaults` all live there; `overview.md` ("Persistence") has the paths.
 - **The container is named after the bundle id**, so changing `PRODUCT_BUNDLE_IDENTIFIER` starts from empty config, frecency, and hotkey bindings.
-- **`SpotlightConflict.isSpotlightOnCmdSpace()` always returns `false`**, so conflict detection never fires; see `hotkey.md` ("Spotlight detection").
+- **Other apps' preference files are unreadable**, including the symbolic hotkeys plist, which is why conflict detection goes through Carbon; see `hotkey.md` ("Spotlight detection").
 - **Search roots:** `/Applications` and `/System/Applications` are readable. A `searchPaths` entry the sandbox can't read, such as a directory under the real home, still passes `AppScanner`'s `fileExists` check, then lists as empty, so it silently contributes no apps. Test custom roots in a signed build.
-- **Unsigned builds have no sandbox.** With no entitlements, the app sees the real home directory, keeps separate state in `~/Library/Application Support/com.ideamtrls.borma/`, and can read the Spotlight plist, so it behaves differently from a signed build in all of the above.
+- **Unsigned builds have no sandbox.** With no entitlements, the app sees the real home directory, and keeps separate state in `~/Library/Application Support/com.ideamtrls.borma/`, so it behaves differently from a signed build in all of the above.
 
 ## Resources / asset catalog
 
@@ -105,5 +105,4 @@ Single SPM package: `KeyboardShortcuts` (Sindre Sorhus), declared in `project.ym
 To add a package, add it to `packages:` and to the target's `dependencies:`, then regenerate.
 
 ## See also
-- `hotkey.md` — the conflict and fallback flow that `isSpotlightOnCmdSpace()` drives.
 - `concurrency.md` — what `-default-isolation MainActor` means for the code.

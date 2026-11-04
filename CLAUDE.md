@@ -23,9 +23,9 @@ This project's working context lives in `Digest/`, with one file per category of
 | `Digest/build.md` | regenerating the Xcode project, changing `project.yml` or `Borma.entitlements`, adding an SPM dependency or source file, bumping the version, a blank app icon, how the app sandbox changes runtime behavior, or fixing signing / CI build issues |
 | `Digest/concurrency.md` | touching async / isolation code, hitting a `Sendable`, `nonisolated`, or data-race error, adding a custom `Shape`, writing an FSEvents wrapper, or chasing an FSEvents-callback / `dispatch_assert_queue` crash |
 | `Digest/search.md` | working on app discovery, fuzzy-match scoring, frecency ranking, or an "app missing from results" / "ranking feels wrong" bug |
-| `Digest/panel.md` | changing the search view, panel sizing / position / dismissal, Settings adoption, the welcome bib, or the conflict banner — or a "panel resizes / dismisses wrong" bug |
-| `Digest/hotkey.md` | working on the global hotkey, diagnosing "hotkey not firing" or "conflict banner never shows", or the Spotlight ⌘Space conflict + fallback |
-| `Digest/glossary.md` | you hit Borma-specific jargon (frecency, welcome bib, conflict banner, two-name pattern, ContinuationBox) and need the definition |
+| `Digest/panel.md` | changing the search view, panel sizing / position / dismissal, Settings adoption, or the bib (notch) — or a "panel resizes / dismisses wrong" or "panel opened by itself" bug |
+| `Digest/hotkey.md` | working on the global hotkey, diagnosing "hotkey not firing" or "Borma and Spotlight both open", or the Spotlight ⌘Space conflict + fallback |
+| `Digest/glossary.md` | you hit Borma-specific jargon (frecency, welcome bib, two-name pattern, ContinuationBox) and need the definition |
 | `Digest/index.md` | you can't find the right file from this table, need the source→digest reverse map, or want a dev command (reset frecency / config / welcome bib, force a Spotlight conflict) or a schema-change recipe |
 | `Digest/notes.md` | writing a plan, spec, or scratch notes (these go in `.notes/`, which is gitignored) |
 

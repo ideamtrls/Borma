@@ -1,7 +1,7 @@
 ---
-scope: Borma-specific vocabulary (frecency, welcome bib, dismiss, conflict banner, two-name pattern, active vs. saved shortcut, ContinuationBox, app vs. config watcher)
+scope: Borma-specific vocabulary (frecency, welcome bib, dismiss, two-name pattern, active vs. saved shortcut, ContinuationBox, app vs. config watcher)
 globs: []
-keywords: [glossary, terminology, vocabulary, jargon, frecency, welcome bib, hint, footer, dismiss, conflict banner, two-name hotkey pattern, active vs saved shortcut, activeShortcut, activeHotkey, ContinuationBox, app scan vs app watcher vs config watcher, two-pass walk, input section, LauncherSurface, Settings adoption, observation re-arm]
+keywords: [glossary, terminology, vocabulary, jargon, frecency, welcome bib, notch, hint, footer, dismiss, two-name hotkey pattern, active vs saved shortcut, activeShortcut, activeHotkey, ContinuationBox, app scan vs app watcher vs config watcher, two-pass walk, input section, LauncherSurface, Settings adoption, observation re-arm]
 updated: 2026-11-03
 ---
 
@@ -18,7 +18,7 @@ A launch-history score combining *frequency* and *recency*, stored per `(bundleI
 
 ## Welcome bib
 
-The hotkey-hint footer hanging off the bottom of the panel, showing the active hotkey. It appears until the first dismiss, or on every open while Settings' "Always show hotkey" (`alwaysShowHint`) is on. Code also calls it the "hint" or "footer" (`shouldShowHint`, `footerHintLine`).
+The notch hanging off the bottom of the panel, showing the active hotkey. It appears until the first dismiss, on every open while Settings' "Always show hotkey" (`alwaysShowHint`) is on, and during a hotkey conflict. Code also calls it the "hint" or "footer" (`shouldShowHint`, `footerHintLine`).
 
 - Source: `Sources/App/WelcomeFlag.swift`, `Sources/Panel/SearchView.swift`.
 - Deep doc: `panel.md`.
@@ -29,13 +29,6 @@ The hotkey-hint footer hanging off the bottom of the panel, showing the active h
 
 - Source: `Sources/Panel/Panel.swift`.
 - Deep doc: `panel.md`.
-
-## Conflict banner
-
-The in-panel notice that Spotlight owns ⌘Space and Borma has switched to its fallback, rendered while `model.conflictActive`. Sandboxed builds never reach it, because conflict detection can't read the Spotlight plist there.
-
-- Source: `Sources/Panel/SearchView.swift` (rendering), `Sources/Hotkey/Hotkey.swift` (detection).
-- Deep doc: `hotkey.md` (mechanics), `panel.md` (rendering).
 
 ## Two-name hotkey pattern
 
@@ -78,7 +71,7 @@ How `AppScanner` discovers apps in each root: a flat `contentsOfDirectory` pass,
 
 ## Input section and launcher surface
 
-- **Input section** — the search field, result rows, and conflict banner, excluding the welcome bib.
+- **Input section** — the search field and result rows, excluding the bib.
 - **`LauncherSurface`** — the private `Shape` that draws the panel's silhouette, joining the input section and the narrower bib with two concave fillets.
 
 - Source: `Sources/Panel/LayoutMetrics.swift`, `Sources/Panel/SearchView.swift`.

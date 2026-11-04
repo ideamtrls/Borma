@@ -80,21 +80,13 @@ struct SearchView: View {
         return parts.joined(separator: " + ")
     }
 
-    private func openKeyboardSettings() {
-        guard let url = URL(string: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension") else { return }
-        NSWorkspace.shared.open(url)
-    }
-
     private var shouldShowHint: Bool {
-        (model.welcomeActive || config.config.alwaysShowHint) && model.query.isEmpty
+        (model.welcomeActive || model.conflictActive || config.config.alwaysShowHint) && model.query.isEmpty
     }
 
     private var surface: LauncherSurface {
         LauncherSurface(
-            inputHeight: LauncherDimensions.inputSectionHeight(
-                resultCount: model.results.count,
-                hasConflict: model.conflictActive
-            ),
+            inputHeight: LauncherDimensions.inputSectionHeight(resultCount: model.results.count),
             bibWidth: LauncherDimensions.bibWidth,
             hasBib: shouldShowHint
         )
@@ -166,28 +158,6 @@ struct SearchView: View {
                     }
                 }
                 .padding(.vertical, 4)
-            }
-
-            if model.conflictActive {
-                VStack(spacing: 6) {
-                    Text("Spotlight still uses ⌘Space —")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                    Text("using \(formatShortcut(model.activeHotkey)) instead")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                    Button(action: openKeyboardSettings) {
-                        Text("Open Keyboard settings →")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                            .underline()
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 4)
-                }
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .frame(height: LauncherDimensions.conflictHeight)
             }
         }
     }

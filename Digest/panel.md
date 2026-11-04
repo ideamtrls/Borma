@@ -1,22 +1,22 @@
 ---
-scope: NSPanel config, SwiftUI search view, sizing/observation, positioning, dismissal, Settings adoption, welcome bib, conflict banner
+scope: NSPanel config, SwiftUI search view, sizing/observation, positioning, dismissal, Settings adoption, the bib (notch)
 globs: [Sources/Panel/Panel.swift, Sources/Panel/SearchView.swift, Sources/Panel/LayoutMetrics.swift, Sources/App/WelcomeFlag.swift]
-keywords: [NSPanel, NSHostingView, FloatingPanel, PanelController, SearchView, LauncherSurface, LauncherDimensions, WelcomeFlag, observation tracking, withObservationTracking, layout, welcome bib, conflict banner, sizing, position, Settings adoption, dismissal, onKeyPress, formatShortcut, ultraThinMaterial, panel doesn't resize, panel dismisses unexpectedly, panel stays open after click-away, focus lost after Settings closes, panel appears on wrong screen, welcome bib still showing after first dismiss, conflict banner still showing after Spotlight disabled]
+keywords: [NSPanel, NSHostingView, FloatingPanel, PanelController, SearchView, LauncherSurface, LauncherDimensions, WelcomeFlag, observation tracking, withObservationTracking, layout, welcome bib, notch, sizing, position, Settings adoption, dismissal, onKeyPress, formatShortcut, ultraThinMaterial, panel doesn't resize, panel dismisses unexpectedly, panel stays open after click-away, focus lost after Settings closes, panel appears on wrong screen, welcome bib still showing after first dismiss, panel opened by itself]
 updated: 2026-11-03
 ---
 
 # Panel and UI
 
-The floating search panel and everything rendered inside it: NSPanel configuration, the SwiftUI view, sizing and live resize, positioning, dismissal, Settings adoption, the welcome bib, and the conflict banner.
+The floating search panel and everything rendered inside it: NSPanel configuration, the SwiftUI view, sizing and live resize, positioning, dismissal, Settings adoption, and the bib.
 
 ## Where things live
 
 - Panel lifecycle, resize, positioning, Settings adoption: `Sources/Panel/Panel.swift`, `PanelController`
 - NSPanel subclass: `Sources/Panel/Panel.swift`, `FloatingPanel`
-- Root view, key handling, bib and banner rendering, hotkey text: `Sources/Panel/SearchView.swift`, `SearchView`, `formatShortcut(_:)`
+- Root view, key handling, bib rendering, hotkey text: `Sources/Panel/SearchView.swift`, `SearchView`, `formatShortcut(_:)`
 - Panel silhouette: `Sources/Panel/SearchView.swift`, `LauncherSurface`
 - Result rows: `Sources/Panel/SearchView.swift`, `ResultRow`
-- Size constants and height formula: `Sources/Panel/LayoutMetrics.swift`, `LauncherDimensions`, `inputSectionHeight(resultCount:hasConflict:)`
+- Size constants and height formula: `Sources/Panel/LayoutMetrics.swift`, `LauncherDimensions`, `inputSectionHeight(resultCount:)`
 - Welcome flag storage: `Sources/App/WelcomeFlag.swift`, `WelcomeFlag`
 - Panel state and launch/dismiss logic: `Sources/Search/LauncherModel.swift`, `LauncherModel`, `launchSelection()`
 - Callback wiring, show at launch and on reopen: `Sources/App/AppDelegate.swift`, `AppDelegate`
@@ -47,15 +47,15 @@ Callers:
 
 - **Hotkey** and the menu bar **Show Borma** item call `toggle()`, which shows a hidden panel and hides a visible one.
 - **App launch** calls `show()` from `applicationDidFinishLaunching(_:)` while `welcome.isActive`.
+- **New hotkey conflict** calls `show()` from `AppDelegate`'s `onBindingChanged` closure, at launch or while running, so the user sees the hotkey that replaced theirs.
 - **App reopen** calls `show()` from `applicationShouldHandleReopen(_:hasVisibleWindows:)`, even if the panel is already visible, which clears the query and re-centers it.
 
 ## Sizing and live resize
 
-Width is fixed at `panelWidth` (640pt). Height is computed via `LauncherDimensions.inputSectionHeight(resultCount:hasConflict:)` plus the optional welcome-bib height:
+Width is fixed at `panelWidth` (640pt). Height is computed via `LauncherDimensions.inputSectionHeight(resultCount:)` plus the optional bib height:
 
 - `fieldHeight` (79pt), always
 - `resultCount * rowHeight` (64pt) + `resultsPadding` (9pt), when there are results. `LauncherModel.maxResults` caps the count at 8.
-- `conflictHeight` (80pt), when `hasConflict`
 - `bibHeight` (38pt), when the hint shows. `resize()` adds this; `inputSectionHeight` excludes it.
 
 `resize()` computes the frame from these constants, and no Borma code reads the hosting view's reported size, so a new region in `SearchView` needs its height added here too. `resultsPadding` matches the results block's `Divider` plus its `.padding(.vertical, 4)`.
@@ -65,21 +65,18 @@ Width is fixed at `panelWidth` (640pt). Height is computed via `LauncherDimensio
 - `model.results.count` — `results` is computed, so this registers `query`, plus `apps` when the query is non-empty. A background rescan can resize an open panel.
 - `model.query.isEmpty`
 - `model.welcomeActive` — written only in `PanelController.init` and in `hide()` after `orderOut`, so it never resizes a visible panel.
+- `model.conflictActive` — `HotkeyController`'s re-checks can flip it while the panel is open, which changes whether the bib shows.
 - `config.config.alwaysShowHint` — registers the whole `config` property, so any change to it, from Settings or a config reload, fires.
 
 On any change, the panel resizes without animation (anchored at the top — the search field stays in place, additional results extend downward) and re-installs the tracking. `onChange` fires once per arming, before the new value lands, so the closure defers to a main-actor `Task` (`concurrency.md` has the hop), returns if the panel isn't visible, and otherwise calls `resize()` and `observeResults()`.
 
 `show()` arms a tracking unconditionally. A `hide()` that changes nothing tracked (the query was already empty) leaves the earlier tracking armed alongside the new one. Each extra adds one redundant `resize()` per change, and all of them clear on the next hide with a typed query, because the closures then return without re-arming.
 
-`model.conflictActive` also feeds the computed height (via `inputSectionHeight(resultCount:hasConflict:)`), but it is not in the observation set. `AppDelegate`'s `onBindingChanged` closure sets it at startup and on each Settings recorder change, and `resize()` runs on every `show()`, so a panel opened after either event is sized for the banner.
-
-**Gap:** the panel can stay open while Settings is open, and a recorder change there flips `conflictActive` with no `resize()` call. `SearchView` re-renders right away, but no Borma code recomputes the frame until the next tracked change or `show()`.
-
 `LauncherDimensions` and `LauncherSurface` are `nonisolated`; `concurrency.md` explains why.
 
 ## Search view
 
-`SearchView.body` is a `ZStack` with `surface` filled in `.ultraThinMaterial` behind a `VStack` of `inputContent` and the optional bib, all clipped with `.clipShape(surface)`. Top to bottom: search field, results, conflict banner, bib.
+`SearchView.body` is a `ZStack` with `surface` filled in `.ultraThinMaterial` behind a `VStack` of `inputContent` and the optional bib, all clipped with `.clipShape(surface)`. Top to bottom: search field, results, bib.
 
 `LauncherSurface` draws a plain rounded rectangle (`cornerRadius`, 12pt) unless `hasBib` is true. Then it draws the input rectangle and a narrower bib joined by two concave fillets (`notchRadius`, 8pt). It falls back to the rounded rectangle when `inputHeight` isn't smaller than the rect's height.
 
@@ -128,22 +125,17 @@ This logic only kicks in for windows owned by the app, and it adopts any of them
 ```swift
 if welcome.isActive {
     welcome.retire()             // persists "borma.welcome.dismissed" = true
-    model.welcomeActive = false  // from here the bib depends on alwaysShowHint
+    model.welcomeActive = false  // from here the bib needs alwaysShowHint or a conflict
 }
 ```
 
 The flag is set on `hide()`, not on app quit. While it is active the panel opens itself at launch, so a user who quits without dismissing the panel sees it and the welcome bib again on their next launch.
 
-## Welcome bib and conflict banner
+## The bib
 
-Two optional regions stacked below the search field + results:
-
-- **Welcome bib** (`bibHeight = 38pt`, `bibWidth = 120pt`): rendered while `(model.welcomeActive || config.config.alwaysShowHint) && model.query.isEmpty`. That expression exists twice, in `SearchView.shouldShowHint` and `PanelController.resize()`, and the two must match. `alwaysShowHint` is the Settings **Always show hotkey** toggle. Shows the current (active) hotkey — `formatShortcut(model.activeHotkey)`, nothing else. Results and the bib never coexist, since `results` is empty for an empty query.
-- **Conflict banner** (`conflictHeight = 80pt`): rendered while `model.conflictActive`, regardless of the query. Explains the Spotlight conflict, names the active hotkey, and links to Keyboard settings via `openKeyboardSettings()`. Sandboxed builds never set `conflictActive`, because conflict detection can't read the Spotlight plist there (see `hotkey.md`), so only unsigned builds reach the banner.
+The notch hanging off the bottom of the panel (`bibHeight = 38pt`, `bibWidth = 120pt`). Rendered while `(model.welcomeActive || model.conflictActive || config.config.alwaysShowHint) && model.query.isEmpty`. That expression exists twice, in `SearchView.shouldShowHint` and `PanelController.resize()`, and the two must match. `alwaysShowHint` is the Settings **Always show hotkey** toggle. Shows the current (active) hotkey — `formatShortcut(model.activeHotkey)`, nothing else. Keep it to that: during a conflict the panel carries no explanation or settings link, by design. Results and the bib never coexist, since `results` is empty for an empty query.
 
 `formatShortcut(_:)` joins `⌃ ⌥ ⇧ ⌘` and the key name with ` + `, shows Space as `␣`, and returns `—` for a nil shortcut. `KeyboardShortcuts` has no public key-glyph helper, so it recovers the key name by stripping modifier glyphs from `shortcut.description`.
-
-The banner can be visible whether or not the welcome bib is. After the bib retires, the banner remains while `conflictActive` is true. `conflictActive` only updates when `evaluateBinding()` runs, at launch and on a Settings recorder change, so disabling Spotlight's `⌘Space` in System Settings leaves the banner up until Borma relaunches or the user commits a new shortcut.
 
 ## See also
 

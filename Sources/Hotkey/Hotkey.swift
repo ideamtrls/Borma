@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import Foundation
 import KeyboardShortcuts
 
@@ -6,6 +7,8 @@ import KeyboardShortcuts
 /// Borma falls back to when Spotlight still owns ⌘Space. Defined once so the
 /// default and the fallback can't drift apart.
 private let fallbackShortcut = KeyboardShortcuts.Shortcut(.space, modifiers: [.command, .shift])
+
+private let systemSettingsBundleID = "com.apple.systempreferences"
 
 extension KeyboardShortcuts.Name {
     static let toggleBorma = Self("toggleBorma", default: fallbackShortcut)
@@ -24,6 +27,7 @@ final class HotkeyController {
     private(set) var isOnFallback: Bool = false
 
     private let onBindingChanged: (Bool, KeyboardShortcuts.Shortcut?) -> Void
+    private var settingsWatch: Task<Void, Never>?
 
     init(
         onTrigger: @escaping () -> Void,
@@ -35,14 +39,13 @@ final class HotkeyController {
         KeyboardShortcuts.onKeyDown(for: .toggleBorma, action: onTrigger)
 
         evaluateBinding()
+        observeFrontmostApp()
     }
 
     func evaluateBinding() {
         let saved = KeyboardShortcuts.getShortcut(for: .toggleBorma)
-        let savedIsCmdSpace = saved?.key == .space && saved?.modifiers == [.command]
-        let conflict = savedIsCmdSpace && SpotlightConflict.isSpotlightOnCmdSpace()
 
-        if conflict {
+        if conflictExists {
             KeyboardShortcuts.disable(.toggleBorma)
             KeyboardShortcuts.setShortcut(fallbackShortcut, for: .toggleBormaFallback)
             KeyboardShortcuts.enable(.toggleBormaFallback)
@@ -58,30 +61,77 @@ final class HotkeyController {
 
         onBindingChanged(isOnFallback, activeShortcut)
     }
+
+    private var savedIsCmdSpace: Bool {
+        let saved = KeyboardShortcuts.getShortcut(for: .toggleBorma)
+        return saved?.key == .space && saved?.modifiers == [.command]
+    }
+
+    private var conflictExists: Bool {
+        savedIsCmdSpace && SpotlightConflict.isSpotlightOnCmdSpace()
+    }
+
+    /// macOS announces no change to its symbolic hotkeys, so the conflict is
+    /// re-checked on every app switch. Summoning Borma counts as a switch.
+    private func observeFrontmostApp() {
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            let bundleID = app?.bundleIdentifier
+            Task { @MainActor [weak self] in
+                self?.frontmostAppDidChange(to: bundleID)
+            }
+        }
+    }
+
+    /// While System Settings is frontmost no app switch will follow the user
+    /// changing the shortcut there, so check once a second until they leave.
+    /// Without this, ⌘Space pressed right after freeing it in System Settings
+    /// would do nothing.
+    private func frontmostAppDidChange(to bundleID: String?) {
+        settingsWatch?.cancel()
+        settingsWatch = nil
+        recheckConflict()
+
+        guard bundleID == systemSettingsBundleID, savedIsCmdSpace else { return }
+        settingsWatch = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { return }
+                self?.recheckConflict()
+            }
+        }
+    }
+
+    /// Re-registers only when the answer changed. `evaluateBinding()` briefly
+    /// unregisters hot keys, so it mustn't run on every check.
+    private func recheckConflict() {
+        guard conflictExists != isOnFallback else { return }
+        Log.hotkey.notice("⌘Space conflict changed; on fallback: \(!self.isOnFallback, privacy: .public)")
+        evaluateBinding()
+    }
 }
 
-/// Reads the system's symbolic hotkeys preference file to determine whether
-/// Spotlight is currently bound to ⌘Space. Returns `false` on any read/decode
-/// failure — i.e. we let Borma's binding proceed and rely on the user noticing.
+/// Asks Carbon whether an enabled system hotkey holds ⌘Space. Entries carry no
+/// id, so this can't confirm the hotkey is Spotlight's; the default holder of
+/// ⌘Space is Spotlight, and the fallback is right whichever one it is. Returns
+/// `false` on failure, so Borma's binding proceeds.
 private enum SpotlightConflict {
     static func isSpotlightOnCmdSpace() -> Bool {
-        let url = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Preferences/com.apple.symbolichotkeys.plist")
+        var hotkeys: Unmanaged<CFArray>?
+        let status = CopySymbolicHotKeys(&hotkeys)
+        guard status == noErr, let entries = hotkeys?.takeRetainedValue() as? [[String: Any]] else {
+            Log.hotkey.error("CopySymbolicHotKeys failed: \(status, privacy: .public)")
+            return false
+        }
 
-        guard let data = try? Data(contentsOf: url),
-              let plist = try? PropertyListSerialization
-                .propertyList(from: data, options: [], format: nil),
-              let top = plist as? [String: Any],
-              let map = top["AppleSymbolicHotKeys"] as? [String: Any],
-              let entry = map["64"] as? [String: Any],
-              (entry["enabled"] as? Bool) == true,
-              let value = entry["value"] as? [String: Any],
-              let parameters = value["parameters"] as? [Int],
-              parameters.count >= 3
-        else { return false }
-
-        let spaceKeyCode = 49
-        let commandMask = 1_048_576
-        return parameters[1] == spaceKeyCode && parameters[2] == commandMask
+        return entries.contains { entry in
+            (entry[kHISymbolicHotKeyEnabled] as? Bool) == true
+                && (entry[kHISymbolicHotKeyCode] as? Int) == kVK_Space
+                && (entry[kHISymbolicHotKeyModifiers] as? Int) == cmdKey
+        }
     }
 }

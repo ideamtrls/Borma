@@ -41,9 +41,9 @@ Everything not listed here runs on main, including `Matcher` scoring and the syn
 - **App scan:** `AppScanner.scan(paths:)` runs `scanAsync` in `Task.detached(priority: .userInitiated)`. It walks serially and hops to main once per candidate bundle for the icon.
 - **FSEvents callbacks:** `fileWatcherRetain`, `fileWatcherRelease`, and `fileWatcherCallback`.
 - **`LauncherSurface.path(in:)`:** SwiftUI calls it off the main actor.
-- **`@Sendable` callbacks:** the `openApplication` completion handler in `AppLauncher.launch(_:)` and the `onChange` closure in `PanelController.observeResults()` are nonisolated. Each only hops back to main.
+- **`@Sendable` callbacks:** the `openApplication` completion handler in `AppLauncher.launch(_:)` and the `onChange` closure in `PanelController.observeResults()`, and the `didActivateApplicationNotification` observer in `HotkeyController` are nonisolated. Each only hops back to main.
 
-A bare `Task { }` in main-actor code inherits main. That covers `AppDelegate`'s initial `rescan()` and its watcher loops, and `PanelController.panelResignedKey`, which uses one to defer a run-loop turn.
+A bare `Task { }` in main-actor code inherits main. That covers `AppDelegate`'s initial `rescan()` and its watcher loops, `HotkeyController.settingsWatch`, and `PanelController.panelResignedKey`, which uses one to defer a run-loop turn.
 
 `rescan()` has no cancellation or generation guard. It reads `config.searchPaths`, then awaits the scan, so scans from startup, the config loop, and the app loop can overlap, and whichever finishes last sets `model.apps`.
 

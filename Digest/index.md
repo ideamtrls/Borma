@@ -21,7 +21,7 @@ The primary doc is the one whose `globs` claim the file and that owns the deep e
 | `Sources/App/AppInfo.swift` | `overview.md` (bundle identity; backs log subsystem + App Support dir) | — |
 | `Sources/App/WelcomeFlag.swift` | `panel.md` (welcome bib retire-on-hide) | `glossary.md`, `overview.md` (UserDefaults key) |
 | `Sources/Panel/Panel.swift` | `panel.md` (NSPanel, sizing, observation re-arm, Settings adoption) | `glossary.md` (observation re-arm), `concurrency.md` (`onChange` hop) |
-| `Sources/Panel/SearchView.swift` | `panel.md` (rendering, hotkey formatting) | `hotkey.md` (conflict banner), `concurrency.md` (`nonisolated` `Shape`) |
+| `Sources/Panel/SearchView.swift` | `panel.md` (rendering, hotkey formatting) | `hotkey.md` (active hotkey), `concurrency.md` (`nonisolated` `Shape`) |
 | `Sources/Panel/LayoutMetrics.swift` | `panel.md` (sizing) | `concurrency.md` (`nonisolated` for `Shape`) |
 | `Sources/Config/Config.swift` | `overview.md` (persistence shape) | — |
 | `Sources/Config/ConfigStore.swift` | `overview.md` (persistence) | `panel.md` (`alwaysShowHint` observation), `concurrency.md` (atomic saves, directory watch) |
@@ -33,7 +33,7 @@ The primary doc is the one whose `globs` claim the file and that owns the deep e
 | `Sources/Hotkey/Hotkey.swift` | `hotkey.md` (controller, Spotlight detection) | `glossary.md` (two-name pattern, active vs. saved) |
 | `Sources/Resources/Assets.xcassets` | `build.md` (`AppIcon`, `MenuBarIcon`) | — |
 | `project.yml` | `build.md` (xcodegen) | `concurrency.md` (`-default-isolation MainActor`), `overview.md` (bundle id) |
-| `Borma.entitlements` | `build.md` (app sandbox, signing) | `overview.md` (data paths), `hotkey.md` (conflict detection) |
+| `Borma.entitlements` | `build.md` (app sandbox, signing) | `overview.md` (data paths) |
 
 ## Task index
 
@@ -51,7 +51,7 @@ Reset commands need Borma quit, because a running app undoes them: `FrecencyStor
 | Change panel sizing or positioning | `panel.md`, `concurrency.md` (`Shape` isolation) |
 | Change the default hotkey | `hotkey.md`; `fallbackShortcut` in `Sources/Hotkey/Hotkey.swift` is both the `.toggleBorma` default and the Spotlight fallback |
 | Diagnose a hotkey-not-firing bug | `hotkey.md` (conflict + fallback) |
-| Force a Spotlight conflict in dev | Use an unsigned build (`build.md`, CLI builds), because detection never fires under the sandbox (`hotkey.md`). Then both conditions must hold: the saved binding is ⌘Space (record it in Settings, choosing "Use Anyway" if Spotlight holds it) and Spotlight's shortcut is enabled on ⌘Space (System Settings → Keyboard → Keyboard Shortcuts → Spotlight). `evaluateBinding()` checks only at launch and on a recorder change, so relaunch after changing Spotlight |
+| Force a Spotlight conflict in dev | Both conditions must hold: the saved binding is ⌘Space (record it in Settings, choosing "Use Anyway" if Spotlight holds it) and Spotlight's shortcut is enabled on ⌘Space (System Settings → Keyboard → Keyboard Shortcuts → Spotlight). Within a second Borma moves to the fallback and opens the panel |
 | Migrate the frecency on-disk schema | `search.md` (`FrecencyStore` migration). Bump `FrecencyData.currentVersion`, add a legacy struct and a branch in `FrecencyStore.load()`, and model the conversion on `FrecencyDataV1.migrated()`. A file no branch decodes leaves history empty, and the next save overwrites it |
 | Migrate the config on-disk schema | `Sources/Config/Config.swift`; `overview.md` (Config schema) has the `decodeIfPresent` rule. Nothing reads `version` after decoding and a loaded file keeps its stored value, so a breaking change needs a branch on it in `init(from:)` as well as a new value in `Config.default` |
 | Reset config | Quit Borma, then `rm ~/Library/Containers/com.ideamtrls.borma/Data/Library/Application\ Support/com.ideamtrls.borma/config.json`. The next launch writes defaults |

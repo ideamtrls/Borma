@@ -84,6 +84,7 @@ final class PanelController {
             _ = model.results.count
             _ = model.query.isEmpty
             _ = model.welcomeActive
+            _ = model.conflictActive
             _ = config.config.alwaysShowHint
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
@@ -147,11 +148,8 @@ final class PanelController {
 
     private func resize() {
         let width = LauncherDimensions.panelWidth
-        let showHint = (model.welcomeActive || config.config.alwaysShowHint) && model.query.isEmpty
-        let inputHeight = LauncherDimensions.inputSectionHeight(
-            resultCount: model.results.count,
-            hasConflict: model.conflictActive
-        )
+        let showHint = (model.welcomeActive || model.conflictActive || config.config.alwaysShowHint) && model.query.isEmpty
+        let inputHeight = LauncherDimensions.inputSectionHeight(resultCount: model.results.count)
         let newHeight = inputHeight + (showHint ? LauncherDimensions.bibHeight : 0)
 
         var frame = panel.frame

@@ -36,9 +36,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         hotkey = HotkeyController(
             onTrigger: { [weak panel] in panel?.toggle() },
-            onBindingChanged: { [weak self] isOnFallback, activeShortcut in
-                self?.model.conflictActive = isOnFallback
-                self?.model.activeHotkey = activeShortcut
+            onBindingChanged: { [weak self, weak panel] isOnFallback, activeShortcut in
+                guard let self else { return }
+                let conflictIsNew = isOnFallback && !self.model.conflictActive
+                self.model.conflictActive = isOnFallback
+                self.model.activeHotkey = activeShortcut
+                // The usual hotkey just stopped working, so open the panel to
+                // show the one that replaced it.
+                if conflictIsNew { panel?.show() }
             }
         )
 
@@ -46,7 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startConfigWatcher()
         startAppWatcher()
 
-        if welcome.isActive {
+        if welcome.isActive, !model.conflictActive {
             panel.show()
         }
     }

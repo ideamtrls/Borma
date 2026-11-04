@@ -52,7 +52,7 @@ AppDelegate
 ├── FrecencyStore     — Loads/persists frecency.json. Per-(bundleId, query) launch history.
 ├── LauncherModel     — Observable. UI-facing state: apps, query, selection, welcome and conflict flags, active hotkey; computes results.
 ├── PanelController   — Owns the floating NSPanel; hosts the SwiftUI SearchView via NSHostingView.
-├── HotkeyController  — Registers the global hotkey; falls back on a ⌘Space/Spotlight conflict (detection never fires when sandboxed; see hotkey.md).
+├── HotkeyController  — Registers the global hotkey; detects a ⌘Space conflict and falls back.
 ├── WelcomeFlag       — UserDefaults flag for the one-time hotkey-hint footer.
 └── FileWatcher (×2)  — FSEvents wrappers for the config file's directory and the configured app directories.
 
@@ -68,7 +68,9 @@ AppInfo               — Bundle identity (`bundleID`), read from the bundle at 
 
 ## Data flow
 
-**Startup.** `AppDelegate` instantiates `ConfigStore` and `FrecencyStore`, each of which loads its JSON synchronously; `appSupportDir()` creates the data directory if needed. On `applicationDidFinishLaunching`, the `PanelController` and `HotkeyController` are constructed, an initial scan is dispatched in the background, and two `FileWatcher`s attach: one to the config file's directory, one to the configured app directories (none when `searchPaths` is empty). If the welcome flag is still active (the user has never dismissed the panel), the panel is shown immediately.
+**Startup.** `AppDelegate` instantiates `ConfigStore` and `FrecencyStore`, each of which loads its JSON synchronously; `appSupportDir()` creates the data directory if needed. On `applicationDidFinishLaunching`, the `PanelController` and `HotkeyController` are constructed, an initial scan is dispatched in the background, and two `FileWatcher`s attach: one to the config file's directory, one to the configured app directories (none when `searchPaths` is empty). The panel is shown immediately if the welcome flag is still active (the user has never dismissed the panel) or the hotkey is taken.
+
+**Hotkey taken.** `HotkeyController` re-checks on every app switch. A new conflict moves Borma to the fallback hotkey and opens the panel, whose bib shows it. See `hotkey.md`.
 
 **Reopen.** Launching the already-running app calls `applicationShouldHandleReopen`, which calls `PanelController.show()`.
 
@@ -127,7 +129,7 @@ When adding a new persisted store, follow the same contract: `Codable` with an e
 
 ## Logging
 
-`Log` has one `Logger` per category (`app`, `config`, `frecency`, `hotkey`, `scanner`), all under subsystem `AppInfo.bundleID`. `Log.hotkey` and `Log.scanner` have no call sites; `AppLauncher` and `FileWatcher` log through `Log.app`. To watch: `log stream --predicate 'subsystem == "com.ideamtrls.borma"'`.
+`Log` has one `Logger` per category (`app`, `config`, `frecency`, `hotkey`, `scanner`), all under subsystem `AppInfo.bundleID`. `Log.scanner` has no call sites; `AppLauncher` and `FileWatcher` log through `Log.app`. To watch: `log stream --predicate 'subsystem == "com.ideamtrls.borma"'`.
 
 ## See also
 
